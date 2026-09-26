@@ -25,6 +25,7 @@ import {
 } from '../services/api';
 import { ProblemIcon, getProblemLabel } from '../components/ProblemIcon';
 import { SeverityBadge } from '../components/SeverityBadge';
+import { StatusBadge } from '../components/StatusBadge';
 import { LocationPicker } from '../components/LocationPicker';
 import { useLanguage } from '../context/LanguageContext';
 
