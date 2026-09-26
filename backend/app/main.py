@@ -7,9 +7,15 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.api import analyze, complaints, dashboard, departments
 
-# Ensure local upload dir exists
-upload_path = Path(settings.UPLOAD_DIR)
-upload_path.mkdir(parents=True, exist_ok=True)
+# Ensure local upload dir exists (with fallback for serverless read-only environments)
+upload_dir = settings.UPLOAD_DIR
+upload_path = Path(upload_dir)
+try:
+    upload_path.mkdir(parents=True, exist_ok=True)
+except OSError:
+    upload_dir = "/tmp/uploads"
+    upload_path = Path(upload_dir)
+    upload_path.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -29,7 +35,7 @@ app.add_middleware(
 )
 
 # Mount local upload directory for image serving
-app.mount("/storage", StaticFiles(directory=settings.UPLOAD_DIR), name="storage")
+app.mount("/storage", StaticFiles(directory=upload_dir), name="storage")
 
 # Include API Routers under /api prefix
 app.include_router(analyze.router, prefix=settings.API_V1_PREFIX)

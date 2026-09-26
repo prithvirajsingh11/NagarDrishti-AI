@@ -18,7 +18,11 @@ class StorageService:
     def __init__(self):
         self.bucket = settings.STORAGE_BUCKET
         self.local_dir = Path(settings.UPLOAD_DIR)
-        self.local_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            self.local_dir.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            self.local_dir = Path("/tmp/uploads")
+            self.local_dir.mkdir(parents=True, exist_ok=True)
         self._supabase = None
 
     def _get_supabase_client(self):
