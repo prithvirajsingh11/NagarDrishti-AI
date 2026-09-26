@@ -24,7 +24,22 @@ export const ProblemIcon: React.FC<ProblemIconProps> = ({ type, className = '', 
   }
 };
 
-export const getProblemLabel = (type: ProblemType): string => {
+export const getProblemLabel = (type: ProblemType, t?: (key: any) => string): string => {
+  if (t) {
+    switch (type) {
+      case 'pothole':
+        return t('problems.pothole');
+      case 'garbage':
+        return t('problems.garbage');
+      case 'streetlight':
+        return t('problems.streetlight');
+      case 'drain':
+        return t('problems.drain');
+      case 'other':
+      default:
+        return t('problems.other');
+    }
+  }
   switch (type) {
     case 'pothole':
       return 'Pothole / Road Damage';

@@ -5,6 +5,7 @@ import { getComplaints } from '../services/api';
 import { getProblemLabel } from '../components/ProblemIcon';
 import { StatusBadge } from '../components/StatusBadge';
 import { SeverityBadge } from '../components/SeverityBadge';
+import { useLanguage } from '../context/LanguageContext';
 
 interface CitizenHomeProps {
   onStartReport: () => void;
@@ -12,6 +13,7 @@ interface CitizenHomeProps {
 }
 
 export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelectComplaint }) => {
+  const { t, currentLanguageInfo } = useLanguage();
   const [recentReports, setRecentReports] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -23,93 +25,88 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
   }, []);
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-      {/* Hero Card */}
-      <div className="bg-gradient-to-br from-sky-600 via-sky-700 to-indigo-800 rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-sky-900/20 relative overflow-hidden">
-        {/* Subtle background glow */}
-        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-
-        <div className="relative z-10 space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/15 backdrop-blur-md rounded-full text-xs font-medium text-sky-100 border border-white/20">
-            <Sparkles size={13} className="text-amber-300" />
-            <span>AI-Assisted Civic Reporting</span>
+    <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+      {/* Minimalist Hero Card */}
+      <div className="bg-white/80 backdrop-blur-xs rounded-2xl p-6 sm:p-8 border border-slate-200/90 shadow-xs relative">
+        <div className="space-y-4">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-slate-100 rounded-full text-xs font-medium text-slate-700 border border-slate-200">
+            <Sparkles size={12} className="text-slate-600" />
+            <span>{t('home.hero_badge')}</span>
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight">
-            See a problem in your city? <br />
-            Just take a photo.
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 leading-tight">
+            {t('home.hero_title')} <br />
+            <span className="text-slate-500 font-normal">{t('home.hero_subtitle')}</span>
           </h1>
 
-          <p className="text-sm sm:text-base text-sky-100 font-normal leading-relaxed">
-            NagarDrishti AI analyzes road damage, garbage piles, faulty streetlights, and blocked drains automatically with visual severity estimation.
+          <p className="text-sm text-slate-600 font-normal leading-relaxed">
+            {t('home.hero_desc')}
           </p>
 
-          {/* Primary CTA - Dominant */}
-          <div className="pt-2">
+          {/* Primary CTA - Clean Minimalist */}
+          <div className="pt-1">
             <button
               onClick={onStartReport}
-              className="w-full sm:w-auto px-6 py-4 bg-white text-slate-900 hover:bg-sky-50 active:scale-[0.98] font-bold text-base rounded-2xl shadow-lg shadow-black/10 flex items-center justify-center gap-3 transition-all duration-150"
+              className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-medium text-sm rounded-xl transition-colors inline-flex items-center gap-2.5 cursor-pointer shadow-xs"
             >
-              <div className="w-8 h-8 rounded-xl bg-sky-600 text-white flex items-center justify-center">
-                <Camera size={18} />
-              </div>
-              <div className="text-left">
-                <div className="text-sm font-bold text-slate-900">Report a Civic Issue</div>
-                <div className="text-[11px] font-medium text-slate-500">नागरिक समस्या की रिपोर्ट करें</div>
-              </div>
-              <ChevronRight size={18} className="text-slate-400 ml-auto" />
+              <Camera size={16} />
+              <span>{t('home.cta_button')}</span>
+              {currentLanguageInfo.code === 'en' && (
+                <span className="text-xs text-slate-400 font-normal ml-1">नागरिक रिपोर्ट</span>
+              )}
+              <ChevronRight size={15} className="text-slate-400 ml-1" />
             </button>
           </div>
         </div>
       </div>
 
-      {/* 3 Step Indicator */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-3 text-center">
-        <div className="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="text-base font-bold text-sky-600 mb-0.5">1</div>
-          <div className="text-xs font-semibold text-slate-800">Snap Photo</div>
-          <div className="text-[10px] text-slate-500">Instant AI scan</div>
+      {/* 3 Step Indicator - Minimal */}
+      <div className="grid grid-cols-3 gap-2.5 sm:gap-3 text-center">
+        <div className="bg-white/70 backdrop-blur-xs p-3.5 rounded-xl border border-slate-200/80 shadow-xs">
+          <div className="text-xs font-mono font-semibold text-slate-400 mb-1">01</div>
+          <div className="text-xs font-medium text-slate-800">{t('home.step1_title')}</div>
+          <div className="text-[11px] text-slate-500">{t('home.step1_desc')}</div>
         </div>
-        <div className="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="text-base font-bold text-sky-600 mb-0.5">2</div>
-          <div className="text-xs font-semibold text-slate-800">Verify Triage</div>
-          <div className="text-[10px] text-slate-500">Review & confirm</div>
+        <div className="bg-white/70 backdrop-blur-xs p-3.5 rounded-xl border border-slate-200/80 shadow-xs">
+          <div className="text-xs font-mono font-semibold text-slate-400 mb-1">02</div>
+          <div className="text-xs font-medium text-slate-800">{t('home.step2_title')}</div>
+          <div className="text-[11px] text-slate-500">{t('home.step2_desc')}</div>
         </div>
-        <div className="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="text-base font-bold text-sky-600 mb-0.5">3</div>
-          <div className="text-xs font-semibold text-slate-800">Track Fix</div>
-          <div className="text-[10px] text-slate-500">Direct report ID</div>
+        <div className="bg-white/70 backdrop-blur-xs p-3.5 rounded-xl border border-slate-200/80 shadow-xs">
+          <div className="text-xs font-mono font-semibold text-slate-400 mb-1">03</div>
+          <div className="text-xs font-medium text-slate-800">{t('home.step3_title')}</div>
+          <div className="text-[11px] text-slate-500">{t('home.step3_desc')}</div>
         </div>
       </div>
 
       {/* Recent Reports Section */}
-      <div className="space-y-3">
+      <div className="space-y-3 pt-2">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-slate-900">Recent Public Reports</h2>
-          <span className="text-xs font-medium text-slate-500">Live feed</span>
+          <h2 className="text-sm font-semibold text-slate-900">{t('home.recent_reports')}</h2>
+          <span className="text-xs text-slate-400">{t('home.live_feed')}</span>
         </div>
 
         {loading ? (
-          <div className="bg-white rounded-2xl p-6 text-center text-xs text-slate-500 border border-slate-200">
-            Loading recent reports...
+          <div className="bg-white/70 backdrop-blur-xs rounded-xl p-6 text-center text-xs text-slate-500 border border-slate-200/80">
+            {t('home.loading')}
           </div>
         ) : recentReports.length === 0 ? (
-          <div className="bg-white rounded-2xl p-6 text-center text-xs text-slate-500 border border-slate-200">
-            No complaints reported yet. Be the first to report an issue!
+          <div className="bg-white/70 backdrop-blur-xs rounded-xl p-6 text-center text-xs text-slate-500 border border-slate-200/80">
+            {t('home.no_reports')}
           </div>
         ) : (
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             {recentReports.map((c) => (
               <div
                 key={c.id}
                 onClick={() => onSelectComplaint && onSelectComplaint(c)}
-                className="bg-white rounded-2xl p-3.5 border border-slate-200 hover:border-sky-300 transition-colors shadow-xs flex items-center gap-3 cursor-pointer group"
+                className="bg-white/80 backdrop-blur-xs rounded-xl p-3 border border-slate-200/80 hover:border-slate-300 transition-colors shadow-xs flex items-center gap-3 cursor-pointer"
               >
-                <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
+                <div className="w-11 h-11 rounded-lg overflow-hidden bg-slate-100 shrink-0 border border-slate-200/70">
                   <img
                     src={c.image_url}
                     alt={c.problem_type}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    className="w-full h-full object-cover"
                     onError={(e) => {
                       (e.target as HTMLElement).style.display = 'none';
                     }}
@@ -118,16 +115,16 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className="font-bold text-xs text-slate-900 truncate">
-                      {getProblemLabel(c.problem_type)}
+                    <span className="font-semibold text-xs text-slate-900 truncate">
+                      {getProblemLabel(c.problem_type, t)}
                     </span>
-                    <SeverityBadge severity={c.severity} />
+                    <SeverityBadge severity={c.severity} size="sm" />
                   </div>
                   <div className="flex items-center gap-1 text-[11px] text-slate-500 truncate">
-                    <MapPin size={11} className="shrink-0 text-slate-400" />
+                    <MapPin size={10} className="shrink-0 text-slate-400" />
                     <span className="truncate">{c.location_name}</span>
                   </div>
-                  <div className="text-[10px] text-slate-400 mt-0.5 font-mono">
+                  <div className="text-[10px] text-slate-400 font-mono">
                     {c.report_id}
                   </div>
                 </div>

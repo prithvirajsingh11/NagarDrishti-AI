@@ -46,7 +46,7 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
+    <div className="min-h-screen flex flex-col bg-transparent text-slate-900">
       <Navbar currentView={currentView} onNavigate={navigateTo} />
 
       <main className="flex-1 pb-12">
