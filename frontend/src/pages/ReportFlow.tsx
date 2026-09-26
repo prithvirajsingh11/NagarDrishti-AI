@@ -28,6 +28,7 @@ import { SeverityBadge } from '../components/SeverityBadge';
 import { StatusBadge } from '../components/StatusBadge';
 import { LocationPicker } from '../components/LocationPicker';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
 
 interface ReportFlowProps {
   onCancel: () => void;
@@ -67,6 +68,7 @@ const SAMPLE_TEST_IMAGES = [
 
 export const ReportFlow: React.FC<ReportFlowProps> = ({ onCancel, onSuccess }) => {
   const { t } = useLanguage();
+  const { citizen, isLoggedIn } = useAuth();
   const [currentStep, setCurrentStep] = useState<Step>('capture');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -688,6 +690,30 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({ onCancel, onSuccess }) =
               <div className="text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-200">
                 <span className="text-[10px] text-slate-400 block font-medium mb-0.5">Citizen Notes:</span>
                 <span className="text-slate-700">{description}</span>
+              </div>
+            )}
+
+            {/* Reporting Citizen Info */}
+            {isLoggedIn && citizen ? (
+              <div className="p-2.5 bg-slate-50/80 rounded-lg border border-slate-200 text-xs space-y-1">
+                <div className="flex items-center justify-between text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+                  <span>{t('auth.profile', 'Citizen Profile')}</span>
+                  <span className="text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded font-medium border border-emerald-200/60 flex items-center gap-0.5">
+                    <CheckCircle2 size={10} />
+                    {t('auth.verified_citizen', 'Verified')}
+                  </span>
+                </div>
+                <div className="font-semibold text-slate-800">
+                  {citizen.name} ({citizen.age} {t('auth.years_old', 'yrs')})
+                </div>
+                <div className="text-[11px] text-slate-500 font-mono">
+                  {citizen.email} • +91 {citizen.phone}
+                </div>
+              </div>
+            ) : (
+              <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-[11px] text-slate-500 flex items-center justify-between">
+                <span>Filing as: <strong className="text-slate-700">Guest Citizen</strong></span>
+                <span className="text-[10px] text-slate-400">Sign in to track under your name</span>
               </div>
             )}
 

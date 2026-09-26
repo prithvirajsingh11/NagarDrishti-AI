@@ -6,11 +6,13 @@ import { CitizenHome } from './pages/CitizenHome';
 import { ReportFlow } from './pages/ReportFlow';
 import { MyReports } from './pages/MyReports';
 import { AuthorityDashboard } from './pages/AuthorityDashboard';
+import { AuthPage } from './pages/AuthPage';
 
-type ViewMode = 'home' | 'report' | 'my-reports' | 'authority';
+type ViewMode = 'home' | 'report' | 'my-reports' | 'authority' | 'auth';
 
 export function App() {
   const [currentView, setCurrentView] = useState<ViewMode>('home');
+  const [previousView, setPreviousView] = useState<ViewMode>('home');
   const [selectedComplaintId, setSelectedComplaintId] = useState<string | null>(null);
 
   // Sync with browser hash if user navigates via URL
@@ -19,6 +21,8 @@ export function App() {
       const hash = window.location.hash.replace('#', '');
       if (hash === 'authority' || hash === 'report' || hash === 'my-reports') {
         setCurrentView(hash as ViewMode);
+      } else if (hash === 'auth' || hash === 'login' || hash === 'signup') {
+        setCurrentView('auth');
       } else {
         setCurrentView('home');
       }
@@ -30,6 +34,9 @@ export function App() {
   }, []);
 
   const navigateTo = (view: ViewMode) => {
+    if (view !== 'auth') {
+      setPreviousView(view);
+    }
     setCurrentView(view);
     window.location.hash = view === 'home' ? '' : view;
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -72,6 +79,14 @@ export function App() {
         )}
 
         {currentView === 'authority' && <AuthorityDashboard />}
+
+        {currentView === 'auth' && (
+          <AuthPage
+            initialMode="signup"
+            onSuccess={() => navigateTo(previousView === 'auth' ? 'home' : previousView)}
+            onCancel={() => navigateTo(previousView === 'auth' ? 'home' : previousView)}
+          />
+        )}
       </main>
 
       <Footer />

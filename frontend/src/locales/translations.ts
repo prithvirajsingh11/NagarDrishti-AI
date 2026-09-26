@@ -33,89 +33,9 @@ export const SUPPORTED_LANGUAGES: LanguageInfo[] = [
   { code: 'pa', name: 'Punjabi', nativeName: 'ਪੰਜਾਬੀ' },
 ];
 
-export type TranslationKey =
-  | 'nav.brand_subtitle'
-  | 'nav.report_issue'
-  | 'nav.my_reports'
-  | 'nav.authority'
-  | 'home.hero_badge'
-  | 'home.hero_title'
-  | 'home.hero_subtitle'
-  | 'home.hero_desc'
-  | 'home.cta_button'
-  | 'home.step1_title'
-  | 'home.step1_desc'
-  | 'home.step2_title'
-  | 'home.step2_desc'
-  | 'home.step3_title'
-  | 'home.step3_desc'
-  | 'home.recent_reports'
-  | 'home.live_feed'
-  | 'home.loading'
-  | 'home.no_reports'
-  | 'report.step'
-  | 'report.back'
-  | 'report.header_title'
-  | 'report.upload_title'
-  | 'report.upload_desc'
-  | 'report.take_photo'
-  | 'report.choose_gallery'
-  | 'report.retake'
-  | 'report.change_gallery'
-  | 'report.demo_pack'
-  | 'report.click_to_load'
-  | 'report.analyze_btn'
-  | 'report.processing'
-  | 'report.analyzing_title'
-  | 'report.analyzing_desc'
-  | 'report.analyzing_step1'
-  | 'report.analyzing_step2'
-  | 'report.analyzing_step3'
-  | 'report.ai_triage'
-  | 'report.confidence'
-  | 'report.detected_problem'
-  | 'report.visual_severity'
-  | 'report.evidence'
-  | 'report.department'
-  | 'report.edit'
-  | 'report.continue'
-  | 'report.done_editing'
-  | 'report.location_title'
-  | 'report.review_complaint'
-  | 'report.submit_complaint'
-  | 'report.submitting_title'
-  | 'report.submitting_desc'
-  | 'report.created_title'
-  | 'report.created_desc'
-  | 'report.report_id'
-  | 'report.status'
-  | 'report.track_btn'
-  | 'report.another_btn'
-  | 'problems.pothole'
-  | 'problems.garbage'
-  | 'problems.streetlight'
-  | 'problems.drain'
-  | 'problems.other'
-  | 'status.reported'
-  | 'status.assigned'
-  | 'status.in_progress'
-  | 'status.resolved'
-  | 'severity.low'
-  | 'severity.medium'
-  | 'severity.high'
-  | 'severity.critical'
-  | 'myreports.title'
-  | 'myreports.desc'
-  | 'myreports.new_report'
-  | 'myreports.search_placeholder'
-  | 'myreports.loading'
-  | 'myreports.empty'
-  | 'myreports.dossier'
-  | 'myreports.timeline'
-  | 'footer.disclaimer'
-  | 'lang.select_language';
+export type TranslationKey = string;
 
-export const TRANSLATIONS: Record<LanguageCode, Record<TranslationKey, string>> = {
+export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
   en: {
     'nav.brand_subtitle': 'AI-Powered Civic Intelligence',
     'nav.report_issue': 'Report Issue',
@@ -197,6 +117,38 @@ export const TRANSLATIONS: Record<LanguageCode, Record<TranslationKey, string>> 
     'myreports.timeline': 'Resolution Progress Timeline',
     'footer.disclaimer': 'Decision-support system only. AI visual detections require citizen and municipal authority verification.',
     'lang.select_language': 'Select Language',
+    'auth.login': 'Log In',
+    'auth.signup': 'Sign Up',
+    'auth.title_signup': 'Create Citizen Account',
+    'auth.desc_signup': 'Enter your personal details to file and track civic reports',
+    'auth.title_login': 'Citizen Sign In',
+    'auth.desc_login': 'Sign in with your registered Gmail or phone number',
+    'auth.name': 'Full Name',
+    'auth.name_placeholder': 'e.g. Rajesh Kumar',
+    'auth.age': 'Age',
+    'auth.age_placeholder': 'e.g. 28',
+    'auth.email': 'Gmail / Email',
+    'auth.email_placeholder': 'e.g. yourname@gmail.com',
+    'auth.phone': 'Phone Number',
+    'auth.phone_placeholder': '10-digit mobile number',
+    'auth.btn_signup': 'Create Account',
+    'auth.btn_login': 'Sign In',
+    'auth.demo_btn': 'Try Quick Demo Account',
+    'auth.have_account': 'Already registered?',
+    'auth.no_account': "Don't have an account?",
+    'auth.logout': 'Sign Out',
+    'auth.profile': 'Citizen Profile',
+    'auth.verified_citizen': 'Citizen',
+    'auth.years_old': 'yrs',
+    'auth.login_input_placeholder': 'Enter your Gmail or 10-digit mobile',
+    'auth.err_name': 'Please enter your full name.',
+    'auth.err_age': 'Please enter a valid age between 10 and 120.',
+    'auth.err_email': 'Please enter a valid Gmail / email address.',
+    'auth.err_phone': 'Please enter a valid 10-digit mobile number.',
+    'auth.err_login_id': 'Please enter your registered Gmail or phone number.',
+    'auth.signup_success': 'Account created successfully! Welcome to NagarDrishti AI.',
+    'auth.login_success': 'Welcome back! Signed in successfully.',
+    'auth.demo_success': 'Signed in as Demo Citizen (Rajesh Kumar).',
   },
   hi: {
     'nav.brand_subtitle': 'एआई-संचालित नागरिक बुद्धि',
@@ -279,6 +231,38 @@ export const TRANSLATIONS: Record<LanguageCode, Record<TranslationKey, string>> 
     'myreports.timeline': 'निवारण प्रगति समयरेखा',
     'footer.disclaimer': 'केवल निर्णय-सहायता प्रणाली। एआई निष्कर्षों के लिए नागरिक एवं निगम सत्यापन आवश्यक है।',
     'lang.select_language': 'भाषा चुनें',
+    'auth.login': 'लॉग इन',
+    'auth.signup': 'साइन अप',
+    'auth.title_signup': 'नागरिक खाता बनाएं',
+    'auth.desc_signup': 'समस्याओं की रिपोर्ट और ट्रैक करने के लिए अपना विवरण दर्ज करें',
+    'auth.title_login': 'नागरिक साइन इन',
+    'auth.desc_login': 'अपने पंजीकृत जीमेल या मोबाइल नंबर से लॉग इन करें',
+    'auth.name': 'पूरा नाम',
+    'auth.name_placeholder': 'उदा. राजेश कुमार',
+    'auth.age': 'आयु / उम्र',
+    'auth.age_placeholder': 'उदा. 28',
+    'auth.email': 'जीमेल / ईमेल',
+    'auth.email_placeholder': 'उदा. yourname@gmail.com',
+    'auth.phone': 'फ़ोन नंबर',
+    'auth.phone_placeholder': '10-अंकों का मोबाइल नंबर',
+    'auth.btn_signup': 'खाता बनाएं',
+    'auth.btn_login': 'लॉग इन करें',
+    'auth.demo_btn': 'त्वरित डेमो खाता आज़माएं',
+    'auth.have_account': 'पहले से खाता है?',
+    'auth.no_account': 'खाता नहीं है?',
+    'auth.logout': 'लॉग आउट',
+    'auth.profile': 'नागरिक प्रोफ़ाइल',
+    'auth.verified_citizen': 'नागरिक',
+    'auth.years_old': 'वर्ष',
+    'auth.login_input_placeholder': 'अपना जीमेल या 10-अंकों का मोबाइल नंबर दर्ज करें',
+    'auth.err_name': 'कृपया अपना पूरा नाम दर्ज करें।',
+    'auth.err_age': 'कृपया 10 से 120 के बीच मान्य आयु दर्ज करें।',
+    'auth.err_email': 'कृपया मान्य जीमेल/ईमेल पता दर्ज करें।',
+    'auth.err_phone': 'कृपया मान्य 10-अंकों का मोबाइल नंबर दर्ज करें।',
+    'auth.err_login_id': 'कृपया पंजीकृत जीमेल या फ़ोन नंबर दर्ज करें।',
+    'auth.signup_success': 'खाता सफलतापूर्वक बनाया गया! नगरदृष्टि एआई में आपका स्वागत है।',
+    'auth.login_success': 'वापसी पर स्वागत है! सफलतापूर्वक लॉग इन किया गया।',
+    'auth.demo_success': 'डेमो नागरिक (राजेश कुमार) के रूप में लॉग इन किया गया।',
   },
   bn: {
     'nav.brand_subtitle': 'এআই-চালিত নাগরিক বুদ্ধিমত্তা',

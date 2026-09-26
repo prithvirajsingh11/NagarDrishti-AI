@@ -10,7 +10,7 @@ import {
 interface LanguageContextType {
   language: LanguageCode;
   setLanguage: (lang: LanguageCode) => void;
-  t: (key: TranslationKey, fallback?: string) => string;
+  t: (key: TranslationKey | string, fallback?: string) => string;
   currentLanguageInfo: LanguageInfo;
   supportedLanguages: LanguageInfo[];
 }
@@ -45,12 +45,12 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     document.documentElement.lang = language;
   }, [language]);
 
-  const t = (key: TranslationKey, fallback?: string): string => {
-    const langDict = TRANSLATIONS[language];
+  const t = (key: TranslationKey | string, fallback?: string): string => {
+    const langDict = TRANSLATIONS[language] as Record<string, string> | undefined;
     if (langDict && langDict[key]) {
       return langDict[key];
     }
-    const defaultDict = TRANSLATIONS.en;
+    const defaultDict = TRANSLATIONS.en as Record<string, string> | undefined;
     if (defaultDict && defaultDict[key]) {
       return defaultDict[key];
     }

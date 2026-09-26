@@ -6,6 +6,7 @@ import { getProblemLabel } from '../components/ProblemIcon';
 import { StatusBadge } from '../components/StatusBadge';
 import { SeverityBadge } from '../components/SeverityBadge';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
 
 interface CitizenHomeProps {
   onStartReport: () => void;
@@ -14,6 +15,7 @@ interface CitizenHomeProps {
 
 export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelectComplaint }) => {
   const { t, currentLanguageInfo } = useLanguage();
+  const { citizen, isLoggedIn } = useAuth();
   const [recentReports, setRecentReports] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,9 +31,17 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
       {/* Minimalist Hero Card */}
       <div className="bg-white/80 backdrop-blur-xs rounded-2xl p-6 sm:p-8 border border-slate-200/90 shadow-xs relative">
         <div className="space-y-4">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-slate-100 rounded-full text-xs font-medium text-slate-700 border border-slate-200">
-            <Sparkles size={12} className="text-slate-600" />
-            <span>{t('home.hero_badge')}</span>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-slate-100 rounded-full text-xs font-medium text-slate-700 border border-slate-200">
+              <Sparkles size={12} className="text-slate-600" />
+              <span>{t('home.hero_badge')}</span>
+            </div>
+
+            {isLoggedIn && citizen && (
+              <div className="text-[11px] text-slate-500 bg-slate-50 border border-slate-200 px-2.5 py-0.5 rounded-full font-medium">
+                {t('auth.verified_citizen', 'Citizen')}: <span className="font-semibold text-slate-800">{citizen.name}</span> ({citizen.age} {t('auth.years_old', 'yrs')})
+              </div>
+            )}
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 leading-tight">
