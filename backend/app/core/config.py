@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     # AI Configuration
     AI_PROVIDER: str = "gemini"  # "gemini" | "local" | "mock"
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-2.5-flash"
+    GEMINI_MODEL: str = "gemini-3.8-flash"
     AI_CONFIDENCE_THRESHOLD: float = 0.75
     
     # Supabase Configuration

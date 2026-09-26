@@ -97,7 +97,12 @@ class GeminiVisionProvider(VisionAnalyzer):
                 raise
         return self._client
 
-    async def analyze(self, image_bytes: bytes, mime_type: str = "image/jpeg") -> CivicDetectionResult:
+    async def analyze(
+        self,
+        image_bytes: bytes,
+        mime_type: str = "image/jpeg",
+        filename: Optional[str] = None
+    ) -> CivicDetectionResult:
         logger.info(f"Analyzing civic image with Gemini Vision ({len(image_bytes)} bytes, {mime_type})")
         
         # 1. Verify decodable image bytes
@@ -139,7 +144,7 @@ class GeminiVisionProvider(VisionAnalyzer):
         if not self.api_key:
             logger.warning("GEMINI_API_KEY is missing. Invoking local demo fallback stub.")
             from app.services.local_provider import LocalVisionProvider
-            return await LocalVisionProvider().analyze(image_bytes, mime_type)
+            return await LocalVisionProvider().analyze(image_bytes, mime_type, filename=filename)
 
         # 4. Invoke Gemini multimodal API with timeout and structured parsing
         try:
@@ -257,6 +262,6 @@ class GeminiVisionProvider(VisionAnalyzer):
             # Fall back safely to demo local provider if general network/auth error occurred
             logger.info("Falling back to demo local provider due to API error")
             from app.services.local_provider import LocalVisionProvider
-            fallback_res = await LocalVisionProvider().analyze(image_bytes, mime_type)
+            fallback_res = await LocalVisionProvider().analyze(image_bytes, mime_type, filename=filename)
             fallback_res.guidance_message = "[DEMO FALLBACK] Live Gemini unreachable; generated fallback demonstration triage. You may edit all details."
             return fallback_res

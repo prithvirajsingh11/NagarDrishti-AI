@@ -51,7 +51,7 @@ async def analyze_civic_image(file: UploadFile = File(...)):
             )
 
         analyzer = get_vision_analyzer()
-        result = await analyzer.analyze(image_bytes, mime_type=content_type)
+        result = await analyzer.analyze(image_bytes, mime_type=content_type, filename=file.filename)
         return result
 
     except HTTPException:
