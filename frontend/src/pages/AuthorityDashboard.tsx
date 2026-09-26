@@ -618,23 +618,23 @@ export const AuthorityDashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 pb-16">
+    <div className="min-h-screen bg-transparent text-slate-900 pb-16">
       {/* 1. TOP HEADER / COMMAND CENTER BAR */}
-      <header className="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-30 shadow-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center shadow-inner">
-              <Building2 size={20} className="text-white" />
+      <header className="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-30 shadow-xs">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center">
+              <Building2 size={16} className="text-white" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-sky-400 uppercase tracking-widest">
+                <span className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider">
                   NagarDrishti AI
                 </span>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-[10px] text-slate-400 font-medium">LIVE COMMAND CENTER</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span className="text-[10px] text-slate-400 font-normal">Command Center</span>
               </div>
-              <h1 className="text-lg font-black tracking-tight text-white leading-tight">
+              <h1 className="text-base font-bold tracking-tight text-white leading-tight">
                 Municipal Authority Command Center
               </h1>
             </div>
@@ -882,21 +882,21 @@ export const AuthorityDashboard: React.FC = () => {
                   Top Civic Hotspots
                 </h3>
               </div>
-              <span className="text-[11px] font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-full">
+              <span className="text-[10px] font-medium text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
                 Spatial Clustering
               </span>
             </div>
 
             {stats?.hotspots && stats.hotspots.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {stats.hotspots.map((hotspot, idx) => (
                   <div
                     key={hotspot.id || idx}
                     onClick={() => handleFocusHotspot(hotspot)}
-                    className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
+                    className={`p-3 rounded-lg border transition-all cursor-pointer ${
                       activeHotspotFilter?.id === hotspot.id
-                        ? 'border-sky-500 bg-sky-50/40 shadow-xs ring-1 ring-sky-500'
-                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/70'
+                        ? 'border-slate-900 bg-white ring-1 ring-slate-900/10'
+                        : 'border-slate-200/80 hover:border-slate-300 hover:bg-slate-50/70'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -1508,19 +1508,19 @@ export const AuthorityDashboard: React.FC = () => {
                     return (
                       <div key={step.status} className="flex flex-col items-center">
                         <div
-                          className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                          className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${
                             isCurrent
-                              ? 'bg-sky-600 text-white ring-2 ring-sky-300'
+                              ? 'bg-slate-900 text-white ring-2 ring-slate-400'
                               : isPassed
                               ? 'bg-emerald-600 text-white'
                               : 'bg-slate-100 text-slate-400 border border-slate-200'
                           }`}
                         >
-                          {isPassed ? <CheckCircle2 size={14} /> : idx + 1}
+                          {isPassed ? <CheckCircle2 size={12} /> : idx + 1}
                         </div>
                         <span
-                          className={`text-[10px] mt-1 font-semibold ${
-                            isCurrent ? 'text-sky-700' : isPassed ? 'text-emerald-700' : 'text-slate-400'
+                          className={`text-[10px] mt-1 font-medium ${
+                            isCurrent ? 'text-slate-900 font-bold' : isPassed ? 'text-emerald-700' : 'text-slate-400'
                           }`}
                         >
                           {step.label}
@@ -1531,18 +1531,18 @@ export const AuthorityDashboard: React.FC = () => {
                 </div>
               </div>
 
-              {/* AUTHORITY STATUS CONTROL (Section 11) */}
-              <div className="p-4 bg-slate-900 text-white rounded-xl space-y-2.5">
+              {/* AUTHORITY STATUS CONTROL */}
+              <div className="p-3.5 bg-slate-900 text-white rounded-xl space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                  <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-300">
                     Authority Status Override
                   </label>
                   {updatingId === selectedComplaint.id && (
-                    <span className="text-[10px] text-sky-400 animate-pulse">Persisting...</span>
+                    <span className="text-[10px] text-slate-400 animate-pulse">Persisting...</span>
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-1.5">
                   {lifecycleSteps.map((step) => {
                     const isActive = selectedComplaint.status === step.status;
                     return (
@@ -1551,10 +1551,10 @@ export const AuthorityDashboard: React.FC = () => {
                         type="button"
                         disabled={updatingId === selectedComplaint.id}
                         onClick={() => handleStatusChange(selectedComplaint.id, step.status)}
-                        className={`py-2 px-2.5 text-xs font-bold rounded-lg border transition-all ${
+                        className={`py-2 px-2.5 text-xs font-medium rounded-lg border transition-all cursor-pointer ${
                           isActive
-                            ? 'bg-sky-600 border-sky-500 text-white shadow-xs'
-                            : 'bg-slate-800/80 hover:bg-slate-800 border-slate-700 text-slate-300'
+                            ? 'bg-white border-white text-slate-900 font-semibold shadow-xs'
+                            : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300'
                         }`}
                       >
                         {step.label}
