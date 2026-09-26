@@ -54,18 +54,20 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
           </p>
 
           {/* Primary CTA - Clean Minimalist */}
-          <div className="pt-1">
+          <div className="pt-1 flex flex-wrap items-center gap-3">
             <button
               onClick={onStartReport}
               className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-medium text-sm rounded-xl transition-colors inline-flex items-center gap-2.5 cursor-pointer shadow-xs"
             >
               <Camera size={16} />
               <span>{t('home.cta_button')}</span>
-              {currentLanguageInfo.code === 'en' && (
-                <span className="text-xs text-slate-400 font-normal ml-1">नागरिक रिपोर्ट</span>
-              )}
               <ChevronRight size={15} className="text-slate-400 ml-1" />
             </button>
+            {!isLoggedIn && (
+              <span className="text-xs text-slate-500 font-medium">
+                • {t('auth.signup', 'Sign up')} required to file
+              </span>
+            )}
           </div>
         </div>
       </div>

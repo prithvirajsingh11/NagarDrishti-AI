@@ -188,7 +188,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
                   }`}
                 >
                   <User size={13} />
-                  <span>{t('auth.login', 'Sign In')}</span>
+                  <span>{t('auth.signup', 'Sign Up')} / {t('auth.login', 'Log In')}</span>
                 </button>
               )}
             </div>
