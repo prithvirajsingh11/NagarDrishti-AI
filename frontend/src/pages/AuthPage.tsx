@@ -10,18 +10,21 @@ import {
   AlertCircle,
   Sparkles,
   ArrowLeft,
+  Camera,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 
 interface AuthPageProps {
   initialMode?: 'login' | 'signup';
+  reason?: 'report' | 'default';
   onSuccess: () => void;
   onCancel: () => void;
 }
 
 export const AuthPage: React.FC<AuthPageProps> = ({
   initialMode = 'signup',
+  reason = 'default',
   onSuccess,
   onCancel,
 }) => {
@@ -202,6 +205,23 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 : t('auth.desc_login', 'Sign in with your registered Gmail or phone number')}
             </p>
           </div>
+
+          {/* Report Gate Notice */}
+          {reason === 'report' && (
+            <div className="flex items-center gap-2.5 p-3 bg-amber-50/90 border border-amber-200/90 rounded-xl text-amber-900 text-xs shadow-xs">
+              <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center shrink-0 text-amber-800">
+                <Camera size={14} />
+              </div>
+              <div className="min-w-0 text-left">
+                <div className="font-semibold text-amber-900">
+                  {t('auth.report_gate_title', 'Citizen Sign In Required')}
+                </div>
+                <div className="text-[11px] text-amber-700 leading-tight mt-0.5">
+                  {t('auth.report_gate_desc', 'Please sign in or create an account with your Gmail & phone number before reporting a civic issue.')}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Mode Switcher Tabs */}
           <div className="flex rounded-lg bg-slate-100 p-0.5 border border-slate-200/60">

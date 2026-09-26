@@ -149,6 +149,8 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     'auth.signup_success': 'Account created successfully! Welcome to NagarDrishti AI.',
     'auth.login_success': 'Welcome back! Signed in successfully.',
     'auth.demo_success': 'Signed in as Demo Citizen (Rajesh Kumar).',
+    'auth.report_gate_title': 'Citizen Sign In Required',
+    'auth.report_gate_desc': 'Please sign in or create an account with your Gmail & phone number before reporting a civic issue.',
   },
   hi: {
     'nav.brand_subtitle': 'एआई-संचालित नागरिक बुद्धि',
@@ -263,6 +265,8 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     'auth.signup_success': 'खाता सफलतापूर्वक बनाया गया! नगरदृष्टि एआई में आपका स्वागत है।',
     'auth.login_success': 'वापसी पर स्वागत है! सफलतापूर्वक लॉग इन किया गया।',
     'auth.demo_success': 'डेमो नागरिक (राजेश कुमार) के रूप में लॉग इन किया गया।',
+    'auth.report_gate_title': 'नागरिक लॉगिन आवश्यक है',
+    'auth.report_gate_desc': 'किसी नागरिक समस्या की रिपोर्ट करने से पहले कृपया अपने जीमेल और फ़ोन नंबर से साइन इन करें या खाता बनाएं।',
   },
   bn: {
     'nav.brand_subtitle': 'এআই-চালিত নাগরিক বুদ্ধিমত্তা',

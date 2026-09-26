@@ -11,6 +11,8 @@ import {
   Loader2,
   RefreshCw,
   Sparkles,
+  Lock,
+  User,
 } from 'lucide-react';
 import type {
   CivicDetectionResult,
@@ -33,6 +35,7 @@ import { useAuth } from '../context/AuthContext';
 interface ReportFlowProps {
   onCancel: () => void;
   onSuccess: (complaint: Complaint) => void;
+  onRequireAuth?: () => void;
 }
 
 type Step = 'capture' | 'analyzing' | 'review_ai' | 'edit_ai' | 'location' | 'confirm' | 'submitting' | 'success';
@@ -66,9 +69,46 @@ const SAMPLE_TEST_IMAGES = [
   },
 ];
 
-export const ReportFlow: React.FC<ReportFlowProps> = ({ onCancel, onSuccess }) => {
+export const ReportFlow: React.FC<ReportFlowProps> = ({ onCancel, onSuccess, onRequireAuth }) => {
   const { t } = useLanguage();
   const { citizen, isLoggedIn } = useAuth();
+
+  // If user is not logged in, enforce sign-in gate before reporting
+  if (!isLoggedIn) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-12">
+        <div className="bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/90 shadow-sm p-6 sm:p-8 text-center space-y-5">
+          <div className="w-12 h-12 rounded-xl bg-slate-900 text-white flex items-center justify-center mx-auto shadow-xs">
+            <Lock size={22} />
+          </div>
+          <div className="space-y-1.5">
+            <h2 className="text-lg font-bold text-slate-900">
+              {t('auth.report_gate_title', 'Citizen Sign In Required')}
+            </h2>
+            <p className="text-xs text-slate-500 leading-relaxed max-w-xs mx-auto">
+              {t('auth.report_gate_desc', 'Please sign in or create an account with your Gmail & phone number before reporting a civic issue.')}
+            </p>
+          </div>
+
+          <div className="space-y-2 pt-2">
+            <button
+              onClick={onRequireAuth || onCancel}
+              className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+            >
+              <User size={14} />
+              <span>{t('auth.login', 'Sign In / Register to Report')}</span>
+            </button>
+            <button
+              onClick={onCancel}
+              className="w-full py-2 px-4 bg-slate-100 hover:bg-slate-200/80 text-slate-600 font-medium text-xs rounded-xl transition-colors cursor-pointer"
+            >
+              {t('report.back', 'Back to Home')}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
   const [currentStep, setCurrentStep] = useState<Step>('capture');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
