@@ -18,6 +18,7 @@ export function App() {
   const [previousView, setPreviousView] = useState<ViewMode>('home');
   const [authReturnTo, setAuthReturnTo] = useState<ViewMode | null>(null);
   const [selectedComplaintId, setSelectedComplaintId] = useState<string | null>(null);
+  const [authErrorMessage, setAuthErrorMessage] = useState<string | null>(null);
 
   // Sync with browser hash if user navigates via URL
   useEffect(() => {
@@ -42,16 +43,20 @@ export function App() {
           return;
         }
         setCurrentView('my-reports');
-      } else if (hash === 'login') {
-        setAuthMode('login');
-        setCurrentView('auth');
-      } else if (hash === 'signup') {
-        setAuthMode('signup');
-        setCurrentView('auth');
-      } else if (hash === 'forgot-password') {
-        setAuthMode('forgot-password');
-        setCurrentView('auth');
-      } else if (hash === 'auth') {
+      } else if (hash === 'login' || hash === 'signup' || hash === 'forgot-password' || hash === 'auth') {
+        if (isLoggedIn) {
+          // Citizen is already authenticated: transition out of auth immediately
+          const dest = authReturnTo || (previousView === 'auth' ? 'home' : previousView);
+          setAuthReturnTo(null);
+          setCurrentView(dest);
+          if (window.location.hash) {
+            window.location.hash = dest === 'home' ? '' : dest;
+          }
+          return;
+        }
+        if (hash === 'signup') setAuthMode('signup');
+        else if (hash === 'forgot-password') setAuthMode('forgot-password');
+        else setAuthMode('login');
         setCurrentView('auth');
       } else {
         setCurrentView('home');
@@ -61,7 +66,18 @@ export function App() {
     handleHashChange();
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [isLoggedIn, loading]);
+  }, [isLoggedIn, loading, authReturnTo, previousView]);
+
+  // Reactive auto-redirect: whenever authenticated citizen is on 'auth' view, immediately redirect
+  useEffect(() => {
+    if (!loading && isLoggedIn && currentView === 'auth') {
+      const dest = authReturnTo || (previousView === 'auth' ? 'home' : previousView);
+      setAuthReturnTo(null);
+      setCurrentView(dest);
+      window.location.hash = dest === 'home' ? '' : dest;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [isLoggedIn, loading, currentView, authReturnTo, previousView]);
 
   const navigateTo = (view: ViewMode, mode?: AuthMode) => {
     if (mode) {
@@ -75,6 +91,16 @@ export function App() {
       setPreviousView(currentView !== 'auth' ? currentView : 'home');
       setCurrentView('auth');
       window.location.hash = mode || 'login';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    // If citizen is logged in and tries to navigate to auth, redirect to destination
+    if (view === 'auth' && isLoggedIn) {
+      const dest = authReturnTo || (previousView === 'auth' ? 'home' : previousView);
+      setAuthReturnTo(null);
+      setCurrentView(dest);
+      window.location.hash = dest === 'home' ? '' : dest;
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
@@ -127,6 +153,7 @@ export function App() {
             onSuccess={handleReportSuccess}
             onRequireAuth={() => {
               setAuthReturnTo('report');
+              setAuthErrorMessage('Your session has expired. Please sign in again.');
               navigateTo('auth', 'login');
             }}
           />
@@ -143,12 +170,15 @@ export function App() {
           <AuthPage
             initialMode={authMode}
             reason={authReturnTo === 'report' ? 'report' : 'default'}
+            initialError={authErrorMessage}
             onSuccess={() => {
+              setAuthErrorMessage(null);
               const dest = authReturnTo || (previousView === 'auth' ? 'home' : previousView);
               setAuthReturnTo(null);
               navigateTo(dest);
             }}
             onCancel={() => {
+              setAuthErrorMessage(null);
               setAuthReturnTo(null);
               navigateTo(previousView === 'auth' ? 'home' : previousView);
             }}

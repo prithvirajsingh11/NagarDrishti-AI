@@ -20,6 +20,7 @@ export type AuthMode = 'login' | 'signup' | 'forgot-password';
 interface AuthPageProps {
   initialMode?: AuthMode;
   reason?: 'report' | 'default';
+  initialError?: string | null;
   onSuccess: () => void;
   onCancel: () => void;
 }
@@ -27,11 +28,12 @@ interface AuthPageProps {
 export const AuthPage: React.FC<AuthPageProps> = ({
   initialMode = 'login',
   reason = 'default',
+  initialError = null,
   onSuccess,
   onCancel,
 }) => {
   const { t } = useLanguage();
-  const { signup, login, resetPassword, citizen, isLoggedIn, logout } = useAuth();
+  const { signup, login, resetPassword, citizen, isLoggedIn } = useAuth();
 
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [name, setName] = useState('');
@@ -39,14 +41,28 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Sync initialError
+  useEffect(() => {
+    if (initialError) {
+      setError(initialError);
+    }
+  }, [initialError]);
 
   // Clear errors and success messages on tab / mode change
   useEffect(() => {
     setError(null);
     setSuccessMsg(null);
   }, [mode]);
+
+  // Automatically transition out if citizen is authenticated (prevent any dead end)
+  useEffect(() => {
+    if (isLoggedIn && citizen) {
+      onSuccess();
+    }
+  }, [isLoggedIn, citizen, onSuccess]);
 
   const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,9 +102,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             res.message ||
               t('auth.signup_success', 'Account created successfully. Welcome to NagarDrishti AI.')
           );
-          setTimeout(() => {
-            onSuccess();
-          }, 600);
+          // Immediately enter Citizen Home — zero second click!
+          onSuccess();
         }
       } else {
         setError(res.error || 'Failed to create citizen account.');
@@ -122,9 +137,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
       if (res.success) {
         setSuccessMsg(t('auth.login_success', 'Welcome back! Signed in successfully.'));
-        setTimeout(() => {
-          onSuccess();
-        }, 600);
+        // Immediately enter Citizen Home — zero second click!
+        onSuccess();
       } else {
         setError(res.error || 'Email or password is incorrect.');
       }
@@ -163,60 +177,23 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     }
   };
 
-  // If already logged in, show verified profile card
-  if (isLoggedIn && citizen && !successMsg) {
+  // If already authenticated, show a clean, seamless transition indicator (no dead end card)
+  if (isLoggedIn && citizen) {
     return (
-      <div className="max-w-md mx-auto px-4 py-12">
-        <div className="bg-white/90 backdrop-blur-md rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6">
-          <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-            <div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                {t('auth.profile', 'Citizen Profile')}
-              </span>
-              <h2 className="text-lg font-bold text-slate-900">{citizen.name}</h2>
-              <span className="inline-block mt-1 px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80 rounded-full">
-                Verified Citizen
-              </span>
-            </div>
-            <div className="w-10 h-10 rounded-full bg-slate-900 text-white font-bold flex items-center justify-center text-sm shadow-xs">
-              {citizen.name.slice(0, 2).toUpperCase()}
-            </div>
+      <div className="max-w-md mx-auto px-4 py-16 text-center">
+        <div className="bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/90 shadow-sm p-8 space-y-4">
+          <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center">
+            <CheckCircle2 size={24} />
           </div>
-
-          <div className="space-y-3 text-xs">
-            <div className="flex items-center justify-between p-2.5 bg-slate-50/80 rounded-lg border border-slate-100">
-              <span className="text-slate-500 flex items-center gap-1.5">
-                <Mail size={13} className="text-slate-400" />
-                {t('auth.email', 'Email Address')}
-              </span>
-              <span className="font-semibold text-slate-800 font-mono text-[11px]">{citizen.email}</span>
-            </div>
-
-            <div className="flex items-center justify-between p-2.5 bg-slate-50/80 rounded-lg border border-slate-100">
-              <span className="text-slate-500 flex items-center gap-1.5">
-                <ShieldCheck size={13} className="text-slate-400" />
-                {t('auth.role', 'Account Role')}
-              </span>
-              <span className="font-semibold text-slate-800 capitalize">Citizen</span>
-            </div>
+          <div className="space-y-1">
+            <h2 className="text-base font-bold text-slate-900">
+              {successMsg || t('auth.login_success', 'Welcome back! Signed in successfully.')}
+            </h2>
+            <p className="text-xs text-slate-500">
+              Entering citizen application...
+            </p>
           </div>
-
-          <div className="flex items-center gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onSuccess}
-              className="flex-1 py-2 px-4 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs rounded-lg transition-colors cursor-pointer text-center"
-            >
-              {t('report.continue', 'Continue')}
-            </button>
-            <button
-              type="button"
-              onClick={logout}
-              className="py-2 px-4 bg-slate-100 hover:bg-red-50 hover:text-red-700 text-slate-600 font-medium text-xs rounded-lg transition-colors cursor-pointer"
-            >
-              {t('auth.logout', 'Sign Out')}
-            </button>
-          </div>
+          <Loader2 className="w-5 h-5 animate-spin text-slate-700 mx-auto mt-2" />
         </div>
       </div>
     );
@@ -393,6 +370,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     onChange={(e) => {
                       setName(e.target.value);
                       if (error) setError(null);
+                      if (successMsg) setSuccessMsg(null);
                     }}
                     placeholder="e.g. Rajesh Kumar"
                     className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
@@ -413,6 +391,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     onChange={(e) => {
                       setEmail(e.target.value);
                       if (error) setError(null);
+                      if (successMsg) setSuccessMsg(null);
                     }}
                     placeholder="e.g. rajesh.kumar@gmail.com"
                     className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
@@ -434,6 +413,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     onChange={(e) => {
                       setPassword(e.target.value);
                       if (error) setError(null);
+                      if (successMsg) setSuccessMsg(null);
                     }}
                     placeholder="At least 6 characters"
                     className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
@@ -483,6 +463,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     onChange={(e) => {
                       setEmail(e.target.value);
                       if (error) setError(null);
+                      if (successMsg) setSuccessMsg(null);
                     }}
                     placeholder="e.g. citizen@example.com"
                     className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
@@ -517,6 +498,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     onChange={(e) => {
                       setPassword(e.target.value);
                       if (error) setError(null);
+                      if (successMsg) setSuccessMsg(null);
                     }}
                     placeholder="Enter your password"
                     className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
@@ -560,6 +542,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     onChange={(e) => {
                       setEmail(e.target.value);
                       if (error) setError(null);
+                      if (successMsg) setSuccessMsg(null);
                     }}
                     placeholder="e.g. your.email@example.com"
                     className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:border-slate-500 focus:ring-1 focus:ring-slate-500"

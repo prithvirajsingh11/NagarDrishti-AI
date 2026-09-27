@@ -17,6 +17,7 @@ interface AuthContextType {
   token: string | null;
   isLoggedIn: boolean;
   loading: boolean;
+  authLoading: boolean;
   signup: (data: { name: string; email: string; password: string }) => Promise<{
     success: boolean;
     error?: string;
@@ -178,6 +179,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
       }
 
+      // Proactively check if Supabase created a session (Confirm Email = OFF)
+      const { data: checkSessionData } = await supabase.auth.getSession();
+      if (checkSessionData?.session) {
+        setSession(checkSessionData.session);
+        setCitizen(extractCitizenProfile(checkSessionData.session.user));
+        return {
+          success: true,
+          message: 'Account created successfully. Welcome to NagarDrishti AI.',
+        };
+      }
+
       // If user created but confirmation email is sent (email confirmation enabled)
       if (authData?.user) {
         return {
@@ -296,8 +308,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user: citizen,
         session,
         token,
-        isLoggedIn: !!citizen,
+        isLoggedIn: !!session && !!citizen,
         loading,
+        authLoading: loading,
         signup,
         login,
         logout,
