@@ -140,7 +140,7 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     'auth.err_email': 'Please enter a valid email address.',
     'auth.err_password_len': 'Password must be at least 6 characters.',
     'auth.err_password_required': 'Please enter your password.',
-    'auth.signup_success': 'Account created successfully! Welcome to NagarDrishti AI.',
+    'auth.signup_success': 'Account created successfully. Welcome to NagarDrishti AI.',
     'auth.login_success': 'Welcome back! Signed in successfully.',
     'auth.report_gate_title': 'Citizen Sign In Required',
     'auth.report_gate_desc': 'Please sign in or create a citizen account before reporting a civic issue.',

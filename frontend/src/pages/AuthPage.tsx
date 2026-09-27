@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   User,
   Mail,
@@ -42,6 +42,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  // Clear errors and success messages on tab / mode change
+  useEffect(() => {
+    setError(null);
+    setSuccessMsg(null);
+  }, [mode]);
+
   const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
@@ -78,11 +84,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         } else {
           setSuccessMsg(
             res.message ||
-              t('auth.signup_success', 'Account created successfully! Welcome to NagarDrishti AI.')
+              t('auth.signup_success', 'Account created successfully. Welcome to NagarDrishti AI.')
           );
           setTimeout(() => {
             onSuccess();
-          }, 1000);
+          }, 600);
         }
       } else {
         setError(res.error || 'Failed to create citizen account.');
@@ -118,9 +124,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         setSuccessMsg(t('auth.login_success', 'Welcome back! Signed in successfully.'));
         setTimeout(() => {
           onSuccess();
-        }, 800);
+        }, 600);
       } else {
-        setError(res.error || 'Invalid credentials. Please verify or reset your password.');
+        setError(res.error || 'Email or password is incorrect.');
       }
     } finally {
       setSubmitting(false);
@@ -220,7 +226,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     <div className="max-w-md mx-auto px-4 py-8">
       {/* Return button */}
       <button
-        onClick={onCancel}
+        onClick={() => {
+          setError(null);
+          setSuccessMsg(null);
+          onCancel();
+        }}
         className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-800 mb-4 transition-colors cursor-pointer"
       >
         <ArrowLeft size={13} />
@@ -313,9 +323,49 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
           {/* Error Message */}
           {error && (
-            <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-red-800 text-xs">
-              <AlertCircle size={15} className="shrink-0 text-red-600 mt-0.5" />
-              <span>{error}</span>
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-800 text-xs space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertCircle size={15} className="shrink-0 text-red-600 mt-0.5" />
+                <span className="leading-relaxed">{error}</span>
+              </div>
+              {mode === 'signup' &&
+                (error.toLowerCase().includes('rate-limited') ||
+                  error.toLowerCase().includes('rate limit')) && (
+                  <div className="pt-0.5 pl-6">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode('login');
+                        setError(null);
+                        setSuccessMsg(null);
+                        window.location.hash = 'login';
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-700 hover:bg-red-800 text-white font-medium text-[11px] rounded-lg transition-colors cursor-pointer shadow-xs"
+                    >
+                      <span>Sign In Instead</span>
+                      <ArrowRight size={12} />
+                    </button>
+                  </div>
+                )}
+              {mode === 'signup' &&
+                (error.toLowerCase().includes('already registered') ||
+                  error.toLowerCase().includes('already exists')) && (
+                  <div className="pt-0.5 pl-6">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode('login');
+                        setError(null);
+                        setSuccessMsg(null);
+                        window.location.hash = 'login';
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-700 hover:bg-red-800 text-white font-medium text-[11px] rounded-lg transition-colors cursor-pointer shadow-xs"
+                    >
+                      <span>Sign In</span>
+                      <ArrowRight size={12} />
+                    </button>
+                  </div>
+                )}
             </div>
           )}
 
@@ -340,7 +390,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     type="text"
                     required
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(e) => {
+                      setName(e.target.value);
+                      if (error) setError(null);
+                    }}
                     placeholder="e.g. Rajesh Kumar"
                     className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
                   />
@@ -357,7 +410,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     type="email"
                     required
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (error) setError(null);
+                    }}
                     placeholder="e.g. rajesh.kumar@gmail.com"
                     className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
                   />
@@ -375,7 +431,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     required
                     minLength={6}
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (error) setError(null);
+                    }}
                     placeholder="At least 6 characters"
                     className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
                   />
@@ -421,7 +480,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     type="email"
                     required
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (error) setError(null);
+                    }}
                     placeholder="e.g. citizen@example.com"
                     className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
                   />
@@ -452,7 +514,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     type="password"
                     required
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (error) setError(null);
+                    }}
                     placeholder="Enter your password"
                     className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
                   />
@@ -492,7 +557,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     type="email"
                     required
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (error) setError(null);
+                    }}
                     placeholder="e.g. your.email@example.com"
                     className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
                   />

@@ -77,3 +77,14 @@ async def health():
         "service": settings.PROJECT_NAME,
         "provider": settings.AI_PROVIDER
     }
+
+from typing import Dict
+from fastapi import Depends
+from app.core.auth import get_current_user
+
+@app.get("/api/auth/me")
+async def get_authenticated_user_profile(user: Dict = Depends(get_current_user)):
+    """
+    Returns verified caller profile with role directly validated by backend/Supabase.
+    """
+    return user

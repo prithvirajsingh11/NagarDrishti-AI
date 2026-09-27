@@ -120,7 +120,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ) {
           return {
             success: false,
-            error: 'Email confirmation is temporarily rate-limited. Please try again later.',
+            error: 'Email signup is temporarily rate-limited. Please try again later or sign in if you already have an account.',
           };
         }
 
@@ -132,7 +132,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ) {
           return {
             success: false,
-            error: 'This email is already registered. Please sign in.',
+            error: 'This email is already registered. Please sign in instead.',
           };
         }
 
@@ -152,7 +152,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         return {
           success: false,
-          error: error.message || 'Unable to create account. Please try again.',
+          error: 'Unable to create account. Please try again.',
         };
       }
 
@@ -164,7 +164,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ) {
         return {
           success: false,
-          error: 'This email is already registered. Please sign in.',
+          error: 'This email is already registered. Please sign in instead.',
         };
       }
 
@@ -174,7 +174,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCitizen(extractCitizenProfile(authData.user));
         return {
           success: true,
-          message: 'Account created successfully! Welcome to NagarDrishti AI.',
+          message: 'Account created successfully. Welcome to NagarDrishti AI.',
         };
       }
 
@@ -187,7 +187,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
       }
 
-      return { success: true, message: 'Account created successfully!' };
+      return { success: true, message: 'Account created successfully. Welcome to NagarDrishti AI.' };
     } catch (err: any) {
       return { success: false, error: err.message || 'Signup failed. Please try again.' };
     }
@@ -221,12 +221,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           errorMsg.includes('invalid login credentials') ||
           errorMsg.includes('invalid credentials')
         ) {
-          return { success: false, error: 'Invalid email or password. Please try again.' };
+          return { success: false, error: 'Email or password is incorrect.' };
         }
         if (errorMsg.includes('email not confirmed')) {
           return {
             success: false,
-            error: 'Please verify your email address before signing in. Check your inbox for the confirmation link.',
+            error: 'Please verify your email address before signing in.',
           };
         }
         if (errorStatus === 429 || errorMsg.includes('rate limit')) {
@@ -235,14 +235,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             error: 'Too many attempts. Please wait a moment before trying again.',
           };
         }
-        return { success: false, error: error.message || 'Login failed. Please check your credentials.' };
+        return { success: false, error: 'Email or password is incorrect.' };
       }
 
       setSession(authData.session);
       setCitizen(extractCitizenProfile(authData.user));
       return { success: true };
     } catch (err: any) {
-      return { success: false, error: err.message || 'Login failed. Please check your credentials.' };
+      return { success: false, error: err.message || 'Email or password is incorrect.' };
     }
   };
 

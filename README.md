@@ -103,12 +103,20 @@ STORAGE_BUCKET=complaint-images
 
 ---
 
-### 2. Database Migration (Supabase)
-Run the SQL migration in your Supabase SQL editor:
-```sql
--- File: supabase/migrations/001_initial_schema.sql
-```
-This initializes the `departments` catalog, the `complaints` table, indexes, and registers the `complaint-images` storage bucket.
+### 2. Database Migration & Auth Configuration (Supabase)
+
+#### A. Database Migration
+Run the SQL migrations in your Supabase SQL editor (`>_`):
+1. `supabase/migrations/001_initial_schema.sql` (complaints & departments)
+2. `supabase/migrations/002_secure_storage.sql` (private bucket storage policies)
+3. `supabase/migrations/003_auth_and_ownership.sql` (profiles table, auto-profile trigger, citizen complaint ownership, RLS)
+
+#### B. Supabase Dashboard Authentication Setup (Hackathon Environment)
+In your Supabase Project Dashboard (`Authentication` → `Providers`):
+- **Email Provider:** **ENABLED**
+- **Phone Provider:** **NOT USED / DISABLED**
+- **Confirm Email:** **OFF** (Under *Email Provider Settings*, toggle *Confirm email* to **OFF** so new citizens can sign up and immediately report issues without waiting for confirmation emails or hitting free-tier email rate limits).
+- **Site URL & Redirect URLs:** Ensure `http://localhost:5173` is listed under *Authentication* → *URL Configuration*.
 
 ---
 

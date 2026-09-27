@@ -691,3 +691,33 @@ def test_14_private_image_access_enforcement():
     # 4. Citizen 2 (unauthorized) cannot access image (403)
     c2_res = client.get(f"/api/complaints/image/{filename}", headers=CITIZEN_2_HEADERS)
     assert c2_res.status_code == 403
+
+
+def test_hotspots_authority_access():
+    """Verify authority can access /api/dashboard/hotspots and citizen is rejected."""
+    # Authority succeeds
+    res_auth = client.get("/api/dashboard/hotspots", headers=AUTHORITY_HEADERS)
+    assert res_auth.status_code == 200
+    assert isinstance(res_auth.json(), list)
+
+    # Citizen is rejected with 403 Forbidden
+    res_cit = client.get("/api/dashboard/hotspots", headers=CITIZEN_HEADERS)
+    assert res_cit.status_code == 403
+    assert "Authority role required" in res_cit.json()["detail"]
+
+    # Unauthenticated is rejected with 401
+    res_anon = client.get("/api/dashboard/hotspots")
+    assert res_anon.status_code == 401
+
+def test_auth_me_endpoint():
+    """Verify /api/auth/me returns verified user profile with role."""
+    res_auth = client.get("/api/auth/me", headers=AUTHORITY_HEADERS)
+    assert res_auth.status_code == 200
+    data = res_auth.json()
+    assert data["role"] == "authority"
+    assert data["email"] == "officer@municipal.gov"
+
+    res_cit = client.get("/api/auth/me", headers=CITIZEN_HEADERS)
+    assert res_cit.status_code == 200
+    data_cit = res_cit.json()
+    assert data_cit["role"] == "citizen"
