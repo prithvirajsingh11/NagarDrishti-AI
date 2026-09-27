@@ -1,5 +1,7 @@
 import uuid
 import logging
+import json
+from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 from app.core.config import settings
@@ -29,6 +31,51 @@ class Database:
         self._memory_complaints: List[Dict] = []
         self._memory_departments: List[Dict] = [dict(d) for d in DEFAULT_DEPARTMENTS]
         self._report_seq = 1
+        self._load_from_disk()
+    def _get_storage_paths(self) -> List[Path]:
+        paths = []
+        p1 = Path(__file__).resolve().parent.parent.parent / "data" / "complaints_db.json"
+        p2 = Path("/Users/tejasvnigam/Desktop/nagardristhi_auth/backend/data/complaints_db.json")
+        for p in [p1, p2]:
+            try:
+                p.parent.mkdir(parents=True, exist_ok=True)
+                paths.append(p)
+            except Exception:
+                pass
+        return paths
+
+    def _load_from_disk(self):
+        for p in self._get_storage_paths():
+            if p.exists() and p.stat().st_size > 5:
+                try:
+                    with open(p, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    if isinstance(data, list) and len(data) > 0:
+                        self._memory_complaints = data
+                        logger.info(f"Loaded {len(data)} complaints from shared disk: {p}")
+                        max_seq = 1
+                        for c in data:
+                            rep = str(c.get("report_id", ""))
+                            if rep.startswith("NGD-2026-"):
+                                try:
+                                    s = int(rep.split("-")[-1])
+                                    if s > max_seq:
+                                        max_seq = s
+                                except ValueError:
+                                    pass
+                        self._report_seq = max_seq + 1
+                        return
+                except Exception as e:
+                    logger.warning(f"Failed to read complaints from disk {p}: {e}")
+
+    def _save_to_disk(self):
+        for p in self._get_storage_paths():
+            try:
+                with open(p, "w", encoding="utf-8") as f:
+                    json.dump(self._memory_complaints, f, indent=2, ensure_ascii=False)
+            except Exception as e:
+                logger.warning(f"Failed to save complaints to disk {p}: {e}")
+
 
     def _get_client(self):
         if self._supabase is None and settings.SUPABASE_URL and settings.SUPABASE_SERVICE_ROLE_KEY:
@@ -107,6 +154,7 @@ class Database:
 
         # Maintain in-memory store for cache, ownership tracking, and test isolation
         self._memory_complaints.insert(0, dict(complaint_record))
+        self._save_to_disk()
 
         # Try Supabase insert
         client = self._get_client()
@@ -268,6 +316,7 @@ class Database:
             if c.get("id") == id_or_report_id or c.get("report_id") == id_or_report_id:
                 c["status"] = new_status
                 c["updated_at"] = now
+                self._save_to_disk()
                 return c
         return None
 
