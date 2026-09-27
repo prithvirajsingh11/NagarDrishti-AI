@@ -14,7 +14,7 @@ interface CitizenHomeProps {
 }
 
 export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelectComplaint }) => {
-  const { t, currentLanguageInfo } = useLanguage();
+  const { t } = useLanguage();
   const { citizen, isLoggedIn } = useAuth();
   const [recentReports, setRecentReports] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
