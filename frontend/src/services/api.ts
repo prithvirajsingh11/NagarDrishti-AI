@@ -13,13 +13,31 @@ const API_BASE = '/api';
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token;
-    if (token) {
-      return { Authorization: `Bearer ${token}` };
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error) {
+      console.warn('Could not read auth session:', error.message);
+    }
+
+    if (session) {
+      // If token is about to expire within 60 seconds, attempt proactive refresh
+      const now = Math.floor(Date.now() / 1000);
+      if (session.expires_at && session.expires_at - now < 60) {
+        try {
+          const { data: refreshed } = await supabase.auth.refreshSession();
+          if (refreshed.session?.access_token) {
+            return { Authorization: `Bearer ${refreshed.session.access_token}` };
+          }
+        } catch {
+          // fallback to current session token
+        }
+      }
+
+      if (session.access_token) {
+        return { Authorization: `Bearer ${session.access_token}` };
+      }
     }
   } catch (err) {
-    console.warn('Could not read auth session token:', err);
+    console.warn('Could not retrieve Supabase access token:', err);
   }
   return {};
 }
@@ -30,6 +48,37 @@ async function getJsonAuthHeaders(): Promise<Record<string, string>> {
     'Content-Type': 'application/json',
     ...auth,
   };
+}
+
+async function parseErrorResponse(res: Response, defaultMsg: string): Promise<Error> {
+  if (res.status === 401) {
+    return new Error('Your session has expired. Please sign in again.');
+  }
+
+  let errMsg = defaultMsg;
+  try {
+    const data = await res.json();
+    if (data && data.detail) {
+      if (typeof data.detail === 'string') {
+        const lower = data.detail.toLowerCase();
+        if (
+          lower.includes('expired') ||
+          lower.includes('token') ||
+          lower.includes('session') ||
+          lower.includes('unauthorized') ||
+          lower.includes('jwt')
+        ) {
+          errMsg = 'Your session has expired. Please sign in again.';
+        } else {
+          errMsg = data.detail;
+        }
+      }
+    }
+  } catch {
+    // fallback
+  }
+
+  return new Error(errMsg);
 }
 
 export async function analyzeCivicImage(file: File): Promise<CivicDetectionResult> {
@@ -44,14 +93,7 @@ export async function analyzeCivicImage(file: File): Promise<CivicDetectionResul
   });
 
   if (!res.ok) {
-    let errMsg = 'AI analysis is temporarily unavailable. Please try again.';
-    try {
-      const err = await res.json();
-      if (err.detail) errMsg = err.detail;
-    } catch {
-      // fallback
-    }
-    throw new Error(errMsg);
+    throw await parseErrorResponse(res, 'AI analysis is temporarily unavailable. Please try again.');
   }
 
   return res.json();
@@ -69,7 +111,10 @@ export async function uploadComplaintImage(file: File): Promise<string> {
   });
 
   if (!res.ok) {
-    throw new Error('Unable to upload complaint image. Please check your session and try again.');
+    throw await parseErrorResponse(
+      res,
+      'Unable to upload complaint image. Please check your session and try again.'
+    );
   }
 
   const data = await res.json();
@@ -85,14 +130,7 @@ export async function createComplaint(payload: ComplaintCreate): Promise<Complai
   });
 
   if (!res.ok) {
-    let errMsg = 'Unable to submit your report. Please try again.';
-    try {
-      const err = await res.json();
-      if (err.detail) errMsg = err.detail;
-    } catch {
-      // fallback
-    }
-    throw new Error(errMsg);
+    throw await parseErrorResponse(res, 'Unable to submit your report. Please try again.');
   }
 
   return res.json();
@@ -116,7 +154,7 @@ export async function getComplaints(filters?: {
   const headers = await getAuthHeaders();
   const res = await fetch(url, { headers });
   if (!res.ok) {
-    throw new Error('Failed to retrieve complaints.');
+    throw await parseErrorResponse(res, 'Failed to retrieve complaints.');
   }
   return res.json();
 }
@@ -125,7 +163,7 @@ export async function getComplaintById(id: string): Promise<Complaint> {
   const headers = await getAuthHeaders();
   const res = await fetch(`${API_BASE}/complaints/${id}`, { headers });
   if (!res.ok) {
-    throw new Error('Complaint not found or access denied.');
+    throw await parseErrorResponse(res, 'Complaint not found or access denied.');
   }
   return res.json();
 }
@@ -142,7 +180,7 @@ export async function updateComplaintStatus(
   });
 
   if (!res.ok) {
-    throw new Error('Failed to update complaint status.');
+    throw await parseErrorResponse(res, 'Failed to update complaint status.');
   }
 
   return res.json();
@@ -152,7 +190,7 @@ export async function getDashboardStatistics(): Promise<DashboardStatistics> {
   const headers = await getAuthHeaders();
   const res = await fetch(`${API_BASE}/dashboard/statistics`, { headers });
   if (!res.ok) {
-    throw new Error('Failed to load dashboard statistics.');
+    throw await parseErrorResponse(res, 'Failed to load dashboard statistics.');
   }
   return res.json();
 }
@@ -161,7 +199,7 @@ export async function getDashboardHeatmap(): Promise<HeatmapPoint[]> {
   const headers = await getAuthHeaders();
   const res = await fetch(`${API_BASE}/dashboard/heatmap`, { headers });
   if (!res.ok) {
-    throw new Error('Failed to load heatmap data.');
+    throw await parseErrorResponse(res, 'Failed to load heatmap data.');
   }
   return res.json();
 }

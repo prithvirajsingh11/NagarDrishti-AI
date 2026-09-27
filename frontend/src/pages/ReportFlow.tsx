@@ -71,44 +71,8 @@ const SAMPLE_TEST_IMAGES = [
 
 export const ReportFlow: React.FC<ReportFlowProps> = ({ onCancel, onSuccess, onRequireAuth }) => {
   const { t } = useLanguage();
-  const { citizen, isLoggedIn } = useAuth();
+  const { citizen, isLoggedIn, loading } = useAuth();
 
-  // If user is not logged in, enforce sign-in gate before reporting
-  if (!isLoggedIn) {
-    return (
-      <div className="max-w-md mx-auto px-4 py-12">
-        <div className="bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/90 shadow-sm p-6 sm:p-8 text-center space-y-5">
-          <div className="w-12 h-12 rounded-xl bg-slate-900 text-white flex items-center justify-center mx-auto shadow-xs">
-            <Lock size={22} />
-          </div>
-          <div className="space-y-1.5">
-            <h2 className="text-lg font-bold text-slate-900">
-              {t('auth.report_gate_title', 'Citizen Sign In Required')}
-            </h2>
-            <p className="text-xs text-slate-500 leading-relaxed max-w-xs mx-auto">
-              {t('auth.report_gate_desc', 'Please sign in or create an account with your Gmail & phone number before reporting a civic issue.')}
-            </p>
-          </div>
-
-          <div className="space-y-2 pt-2">
-            <button
-              onClick={onRequireAuth || onCancel}
-              className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs"
-            >
-              <User size={14} />
-              <span>{t('auth.login', 'Sign In / Register to Report')}</span>
-            </button>
-            <button
-              onClick={onCancel}
-              className="w-full py-2 px-4 bg-slate-100 hover:bg-slate-200/80 text-slate-600 font-medium text-xs rounded-xl transition-colors cursor-pointer"
-            >
-              {t('report.back', 'Back to Home')}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
   const [currentStep, setCurrentStep] = useState<Step>('capture');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -134,6 +98,53 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({ onCancel, onSuccess, onR
 
   // Submission state
   const [submittedComplaint, setSubmittedComplaint] = useState<Complaint | null>(null);
+
+  // Prevent flash or hook count mismatches while auth session is restoring
+  if (loading) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-16 text-center">
+        <Loader2 className="w-8 h-8 animate-spin text-slate-800 mx-auto mb-3" />
+        <p className="text-xs text-slate-500 font-medium">Verifying citizen session...</p>
+      </div>
+    );
+  }
+
+  // If user is genuinely not logged in, enforce sign-in gate before reporting
+  if (!isLoggedIn) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-12">
+        <div className="bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/90 shadow-sm p-6 sm:p-8 text-center space-y-5">
+          <div className="w-12 h-12 rounded-xl bg-slate-900 text-white flex items-center justify-center mx-auto shadow-xs">
+            <Lock size={22} />
+          </div>
+          <div className="space-y-1.5">
+            <h2 className="text-lg font-bold text-slate-900">
+              {t('auth.report_gate_title', 'Citizen Sign In Required')}
+            </h2>
+            <p className="text-xs text-slate-500 leading-relaxed max-w-xs mx-auto">
+              {t('auth.report_gate_desc', 'Please sign in or create a citizen account before reporting a civic issue.')}
+            </p>
+          </div>
+
+          <div className="space-y-2 pt-2">
+            <button
+              onClick={onRequireAuth || onCancel}
+              className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+            >
+              <User size={14} />
+              <span>{t('auth.login', 'Sign In / Register to Report')}</span>
+            </button>
+            <button
+              onClick={onCancel}
+              className="w-full py-2 px-4 bg-slate-100 hover:bg-slate-200/80 text-slate-600 font-medium text-xs rounded-xl transition-colors cursor-pointer"
+            >
+              {t('report.back', 'Back to Home')}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Handle local file selection with strict validation
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -214,8 +225,12 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({ onCancel, onSuccess, onR
       setSubmittedComplaint(newComplaint);
       setCurrentStep('success');
     } catch (err: any) {
-      setAnalyzingError(err.message || 'Failed to submit complaint. Please try again.');
+      const errMsg = err.message || 'Failed to submit complaint. Please try again.';
+      setAnalyzingError(errMsg);
       setCurrentStep('confirm');
+      if (errMsg.toLowerCase().includes('session has expired') && onRequireAuth) {
+        setTimeout(() => onRequireAuth(), 1200);
+      }
     }
   };
 
@@ -734,7 +749,7 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({ onCancel, onSuccess, onR
             )}
 
             {/* Reporting Citizen Info */}
-            {isLoggedIn && citizen ? (
+            {citizen && (
               <div className="p-2.5 bg-slate-50/80 rounded-lg border border-slate-200 text-xs space-y-1">
                 <div className="flex items-center justify-between text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
                   <span>{t('auth.profile', 'Citizen Profile')}</span>
@@ -749,11 +764,6 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({ onCancel, onSuccess, onR
                 <div className="text-[11px] text-slate-500 font-mono">
                   {citizen.email}
                 </div>
-              </div>
-            ) : (
-              <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-[11px] text-slate-500 flex items-center justify-between">
-                <span>Filing as: <strong className="text-slate-700">Guest Citizen</strong></span>
-                <span className="text-[10px] text-slate-400">Sign in to track under your name</span>
               </div>
             )}
 

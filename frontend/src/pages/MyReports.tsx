@@ -18,6 +18,7 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
   const { token } = useAuth();
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeComplaint, setActiveComplaint] = useState<Complaint | null>(null);
 
@@ -29,6 +30,8 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
   ];
 
   useEffect(() => {
+    setLoading(true);
+    setErrorMessage(null);
     getComplaints()
       .then((data) => {
         setComplaints(data);
@@ -37,11 +40,15 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
           if (match) setActiveComplaint(match);
         } else if (data.length > 0) {
           setActiveComplaint(data[0]);
+        } else {
+          setActiveComplaint(null);
         }
       })
-      .catch((err) => console.error(err))
+      .catch((err) => {
+        setErrorMessage(err.message || 'Failed to retrieve reports.');
+      })
       .finally(() => setLoading(false));
-  }, [selectedComplaintId]);
+  }, [selectedComplaintId, token]);
 
   const filteredComplaints = complaints.filter((c) => {
     if (!searchQuery) return true;
@@ -98,7 +105,21 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
         />
       </div>
 
-      {loading ? (
+      {errorMessage ? (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center text-xs text-red-700 space-y-3">
+          <p className="font-semibold">{errorMessage}</p>
+          {errorMessage.toLowerCase().includes('sign in') && (
+            <button
+              onClick={() => {
+                window.location.hash = 'login';
+              }}
+              className="px-4 py-1.5 bg-slate-900 text-white rounded-lg font-medium text-xs cursor-pointer shadow-xs"
+            >
+              {t('auth.login', 'Sign In')}
+            </button>
+          )}
+        </div>
+      ) : loading ? (
         <div className="bg-white/70 backdrop-blur-xs rounded-xl p-8 text-center text-xs text-slate-500 border border-slate-200/80">
           {t('myreports.loading')}
         </div>

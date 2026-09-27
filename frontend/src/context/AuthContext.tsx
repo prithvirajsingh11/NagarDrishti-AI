@@ -17,7 +17,12 @@ interface AuthContextType {
   token: string | null;
   isLoggedIn: boolean;
   loading: boolean;
-  signup: (data: { name: string; email: string; password: string }) => Promise<{ success: boolean; error?: string }>;
+  signup: (data: { name: string; email: string; password: string }) => Promise<{
+    success: boolean;
+    error?: string;
+    needsConfirmation?: boolean;
+    message?: string;
+  }>;
   login: (data: { email: string; password: string }) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
@@ -74,7 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     name: string;
     email: string;
     password: string;
-  }): Promise<{ success: boolean; error?: string }> => {
+  }): Promise<{ success: boolean; error?: string; needsConfirmation?: boolean; message?: string }> => {
     const trimmedName = data.name.trim();
     const cleanEmail = data.email.trim().toLowerCase();
     const password = data.password;
@@ -102,19 +107,87 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
-        let msg = error.message;
-        if (msg.toLowerCase().includes('already registered')) {
-          msg = 'An account with this email already exists. Please sign in.';
-        } else if (msg.toLowerCase().includes('weak password')) {
-          msg = 'Password is too weak. Please use a stronger password.';
+        const errorMsg = error.message ? error.message.toLowerCase() : '';
+        const errorCode = (error as any).code || '';
+        const errorStatus = (error as any).status;
+
+        // Rate-limit handling
+        if (
+          errorStatus === 429 ||
+          errorCode === 'over_email_send_rate_limit' ||
+          errorMsg.includes('rate limit') ||
+          errorMsg.includes('over_email_send_rate_limit')
+        ) {
+          return {
+            success: false,
+            error: 'Email confirmation is temporarily rate-limited. Please try again later.',
+          };
         }
-        return { success: false, error: msg };
+
+        // Existing account handling
+        if (
+          errorMsg.includes('already registered') ||
+          errorMsg.includes('user already exists') ||
+          errorMsg.includes('already in use')
+        ) {
+          return {
+            success: false,
+            error: 'This email is already registered. Please sign in.',
+          };
+        }
+
+        if (errorMsg.includes('weak password')) {
+          return {
+            success: false,
+            error: 'Password is too weak. Please use at least 6 characters.',
+          };
+        }
+
+        if (errorMsg.includes('invalid email')) {
+          return {
+            success: false,
+            error: 'Please enter a valid email address.',
+          };
+        }
+
+        return {
+          success: false,
+          error: error.message || 'Unable to create account. Please try again.',
+        };
       }
 
-      if (authData.user) {
-        setCitizen(extractCitizenProfile(authData.user));
+      // Supabase returns empty identities array when email confirmation is active and user already exists
+      if (
+        authData?.user &&
+        Array.isArray(authData.user.identities) &&
+        authData.user.identities.length === 0
+      ) {
+        return {
+          success: false,
+          error: 'This email is already registered. Please sign in.',
+        };
       }
-      return { success: true };
+
+      // If session was immediately created (email confirmation disabled in Supabase project)
+      if (authData?.session) {
+        setSession(authData.session);
+        setCitizen(extractCitizenProfile(authData.user));
+        return {
+          success: true,
+          message: 'Account created successfully! Welcome to NagarDrishti AI.',
+        };
+      }
+
+      // If user created but confirmation email is sent (email confirmation enabled)
+      if (authData?.user) {
+        return {
+          success: true,
+          needsConfirmation: true,
+          message: 'Account created successfully. Please verify your email if email confirmation is enabled.',
+        };
+      }
+
+      return { success: true, message: 'Account created successfully!' };
     } catch (err: any) {
       return { success: false, error: err.message || 'Signup failed. Please try again.' };
     }
@@ -141,11 +214,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
-        let msg = error.message;
-        if (msg.toLowerCase().includes('invalid login credentials')) {
-          msg = 'Invalid email or password. Please try again.';
+        const errorMsg = error.message ? error.message.toLowerCase() : '';
+        const errorStatus = (error as any).status;
+
+        if (
+          errorMsg.includes('invalid login credentials') ||
+          errorMsg.includes('invalid credentials')
+        ) {
+          return { success: false, error: 'Invalid email or password. Please try again.' };
         }
-        return { success: false, error: msg };
+        if (errorMsg.includes('email not confirmed')) {
+          return {
+            success: false,
+            error: 'Please verify your email address before signing in. Check your inbox for the confirmation link.',
+          };
+        }
+        if (errorStatus === 429 || errorMsg.includes('rate limit')) {
+          return {
+            success: false,
+            error: 'Too many attempts. Please wait a moment before trying again.',
+          };
+        }
+        return { success: false, error: error.message || 'Login failed. Please check your credentials.' };
       }
 
       setSession(authData.session);
@@ -180,6 +270,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
+        const errorMsg = error.message ? error.message.toLowerCase() : '';
+        const errorStatus = (error as any).status;
+
+        if (errorStatus === 429 || errorMsg.includes('rate limit')) {
+          return {
+            success: false,
+            error: 'Password reset request is temporarily rate-limited. Please try again later.',
+          };
+        }
         return { success: false, error: error.message };
       }
       return { success: true };

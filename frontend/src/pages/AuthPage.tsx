@@ -44,6 +44,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
   const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     setError(null);
     setSuccessMsg(null);
 
@@ -61,27 +62,39 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     }
 
     setSubmitting(true);
-    const res = await signup({
-      name: name.trim(),
-      email: email.trim(),
-      password,
-    });
-    setSubmitting(false);
+    try {
+      const res = await signup({
+        name: name.trim(),
+        email: email.trim(),
+        password,
+      });
 
-    if (res.success) {
-      setSuccessMsg(
-        t('auth.signup_success', 'Account created successfully! Welcome to NagarDrishti AI.')
-      );
-      setTimeout(() => {
-        onSuccess();
-      }, 1000);
-    } else {
-      setError(res.error || 'Failed to create citizen account.');
+      if (res.success) {
+        if (res.needsConfirmation) {
+          setSuccessMsg(
+            res.message ||
+              'Account created successfully. Please verify your email if email confirmation is enabled.'
+          );
+        } else {
+          setSuccessMsg(
+            res.message ||
+              t('auth.signup_success', 'Account created successfully! Welcome to NagarDrishti AI.')
+          );
+          setTimeout(() => {
+            onSuccess();
+          }, 1000);
+        }
+      } else {
+        setError(res.error || 'Failed to create citizen account.');
+      }
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     setError(null);
     setSuccessMsg(null);
 
@@ -95,24 +108,28 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     }
 
     setSubmitting(true);
-    const res = await login({
-      email: email.trim(),
-      password,
-    });
-    setSubmitting(false);
+    try {
+      const res = await login({
+        email: email.trim(),
+        password,
+      });
 
-    if (res.success) {
-      setSuccessMsg(t('auth.login_success', 'Welcome back! Signed in successfully.'));
-      setTimeout(() => {
-        onSuccess();
-      }, 800);
-    } else {
-      setError(res.error || 'Invalid credentials. Please verify or reset your password.');
+      if (res.success) {
+        setSuccessMsg(t('auth.login_success', 'Welcome back! Signed in successfully.'));
+        setTimeout(() => {
+          onSuccess();
+        }, 800);
+      } else {
+        setError(res.error || 'Invalid credentials. Please verify or reset your password.');
+      }
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     setError(null);
     setSuccessMsg(null);
 
@@ -122,18 +139,21 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     }
 
     setSubmitting(true);
-    const res = await resetPassword(email.trim());
-    setSubmitting(false);
+    try {
+      const res = await resetPassword(email.trim());
 
-    if (res.success) {
-      setSuccessMsg(
-        t(
-          'auth.reset_sent',
-          'Password reset link sent! Please check your email inbox to update your password.'
-        )
-      );
-    } else {
-      setError(res.error || 'Failed to send reset link. Please verify your email.');
+      if (res.success) {
+        setSuccessMsg(
+          t(
+            'auth.reset_sent',
+            'Password reset link sent! Please check your email inbox to update your password.'
+          )
+        );
+      } else {
+        setError(res.error || 'Failed to send reset link. Please verify your email.');
+      }
+    } finally {
+      setSubmitting(false);
     }
   };
 
