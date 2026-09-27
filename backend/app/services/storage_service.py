@@ -20,9 +20,12 @@ class StorageService:
         self.local_dir = Path(settings.UPLOAD_DIR)
         try:
             self.local_dir.mkdir(parents=True, exist_ok=True)
-        except OSError:
+        except Exception:
             self.local_dir = Path("/tmp/uploads")
-            self.local_dir.mkdir(parents=True, exist_ok=True)
+            try:
+                self.local_dir.mkdir(parents=True, exist_ok=True)
+            except Exception:
+                pass
         self._supabase = None
 
     def _get_supabase_client(self):

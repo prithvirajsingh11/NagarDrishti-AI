@@ -9,13 +9,14 @@ from app.api import analyze, complaints, dashboard, departments
 
 # Ensure local upload dir exists (with fallback for serverless read-only environments)
 upload_dir = settings.UPLOAD_DIR
-upload_path = Path(upload_dir)
 try:
-    upload_path.mkdir(parents=True, exist_ok=True)
-except OSError:
+    Path(upload_dir).mkdir(parents=True, exist_ok=True)
+except Exception:
     upload_dir = "/tmp/uploads"
-    upload_path = Path(upload_dir)
-    upload_path.mkdir(parents=True, exist_ok=True)
+    try:
+        Path(upload_dir).mkdir(parents=True, exist_ok=True)
+    except Exception:
+        pass
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
