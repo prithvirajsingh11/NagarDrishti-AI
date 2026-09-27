@@ -1,6 +1,8 @@
 import asyncio
 import logging
-from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from typing import Dict
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from app.core.auth import get_current_user
 from app.core.config import settings
 from app.schemas.ai import CivicDetectionResult
 from app.services.vision_analyzer import VisionAnalyzer
@@ -24,7 +26,10 @@ def get_vision_analyzer() -> VisionAnalyzer:
         return LocalVisionProvider()
 
 @router.post("", response_model=CivicDetectionResult)
-async def analyze_civic_image(file: UploadFile = File(...)):
+async def analyze_civic_image(
+    file: UploadFile = File(...),
+    user: Dict = Depends(get_current_user)
+):
     """
     Analyze citizen photograph using AI Vision.
     Routes to configured VisionAnalyzer (Gemini or Local model).

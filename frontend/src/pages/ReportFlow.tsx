@@ -744,10 +744,10 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({ onCancel, onSuccess, onR
                   </span>
                 </div>
                 <div className="font-semibold text-slate-800">
-                  {citizen.name} ({citizen.age} {t('auth.years_old', 'yrs')})
+                  {citizen.name}
                 </div>
                 <div className="text-[11px] text-slate-500 font-mono">
-                  {citizen.email} • +91 {citizen.phone}
+                  {citizen.email}
                 </div>
               </div>
             ) : (

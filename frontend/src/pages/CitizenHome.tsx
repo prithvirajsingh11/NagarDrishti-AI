@@ -15,16 +15,22 @@ interface CitizenHomeProps {
 
 export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelectComplaint }) => {
   const { t } = useLanguage();
-  const { citizen, isLoggedIn } = useAuth();
+  const { citizen, isLoggedIn, token } = useAuth();
   const [recentReports, setRecentReports] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!isLoggedIn) {
+      setRecentReports([]);
+      setLoading(false);
+      return;
+    }
+
     getComplaints({ limit: 5 })
       .then((data) => setRecentReports(data))
       .catch((err) => console.error(err))
       .finally(() => setLoading(false));
-  }, []);
+  }, [isLoggedIn]);
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
@@ -39,7 +45,7 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
 
             {isLoggedIn && citizen && (
               <div className="text-[11px] text-slate-500 bg-slate-50 border border-slate-200 px-2.5 py-0.5 rounded-full font-medium">
-                {t('auth.verified_citizen', 'Citizen')}: <span className="font-semibold text-slate-800">{citizen.name}</span> ({citizen.age} {t('auth.years_old', 'yrs')})
+                {t('auth.verified_citizen', 'Citizen')}: <span className="font-semibold text-slate-800">{citizen.name}</span>
               </div>
             )}
           </div>
@@ -104,48 +110,55 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
           </div>
         ) : recentReports.length === 0 ? (
           <div className="bg-white/70 backdrop-blur-xs rounded-xl p-6 text-center text-xs text-slate-500 border border-slate-200/80">
-            {t('home.no_reports')}
+            {isLoggedIn ? t('home.no_reports', 'No reports filed yet. Start by reporting an issue.') : 'Sign in to see your recently submitted civic reports.'}
           </div>
         ) : (
           <div className="space-y-2">
-            {recentReports.map((c) => (
-              <div
-                key={c.id}
-                onClick={() => onSelectComplaint && onSelectComplaint(c)}
-                className="bg-white/80 backdrop-blur-xs rounded-xl p-3 border border-slate-200/80 hover:border-slate-300 transition-colors shadow-xs flex items-center gap-3 cursor-pointer"
-              >
-                <div className="w-11 h-11 rounded-lg overflow-hidden bg-slate-100 shrink-0 border border-slate-200/70">
-                  <img
-                    src={c.image_url}
-                    alt={c.problem_type}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLElement).style.display = 'none';
-                    }}
-                  />
-                </div>
+            {recentReports.map((c) => {
+              const displayImage =
+                c.image_url?.startsWith('/api') && token
+                  ? `${c.image_url}?token=${token}`
+                  : c.image_url;
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="font-semibold text-xs text-slate-900 truncate">
-                      {getProblemLabel(c.problem_type, t)}
-                    </span>
-                    <SeverityBadge severity={c.severity} size="sm" />
+              return (
+                <div
+                  key={c.id}
+                  onClick={() => onSelectComplaint && onSelectComplaint(c)}
+                  className="bg-white/80 backdrop-blur-xs rounded-xl p-3 border border-slate-200/80 hover:border-slate-300 transition-colors shadow-xs flex items-center gap-3 cursor-pointer"
+                >
+                  <div className="w-11 h-11 rounded-lg overflow-hidden bg-slate-100 shrink-0 border border-slate-200/70">
+                    <img
+                      src={displayImage}
+                      alt={c.problem_type}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = 'none';
+                      }}
+                    />
                   </div>
-                  <div className="flex items-center gap-1 text-[11px] text-slate-500 truncate">
-                    <MapPin size={10} className="shrink-0 text-slate-400" />
-                    <span className="truncate">{c.location_name}</span>
-                  </div>
-                  <div className="text-[10px] text-slate-400 font-mono">
-                    {c.report_id}
-                  </div>
-                </div>
 
-                <div className="shrink-0">
-                  <StatusBadge status={c.status} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="font-semibold text-xs text-slate-900 truncate">
+                        {getProblemLabel(c.problem_type, t)}
+                      </span>
+                      <SeverityBadge severity={c.severity} size="sm" />
+                    </div>
+                    <div className="flex items-center gap-1 text-[11px] text-slate-500 truncate">
+                      <MapPin size={10} className="shrink-0 text-slate-400" />
+                      <span className="truncate">{c.location_name}</span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-mono">
+                      {c.report_id}
+                    </div>
+                  </div>
+
+                  <div className="shrink-0">
+                    <StatusBadge status={c.status} />
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

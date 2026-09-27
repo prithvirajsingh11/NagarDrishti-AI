@@ -7,15 +7,39 @@ import type {
   Department,
   HeatmapPoint
 } from '../types/complaint';
+import { supabase } from './supabaseClient';
 
 const API_BASE = '/api';
+
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (token) {
+      return { Authorization: `Bearer ${token}` };
+    }
+  } catch (err) {
+    console.warn('Could not read auth session token:', err);
+  }
+  return {};
+}
+
+async function getJsonAuthHeaders(): Promise<Record<string, string>> {
+  const auth = await getAuthHeaders();
+  return {
+    'Content-Type': 'application/json',
+    ...auth,
+  };
+}
 
 export async function analyzeCivicImage(file: File): Promise<CivicDetectionResult> {
   const formData = new FormData();
   formData.append('file', file);
 
+  const authHeaders = await getAuthHeaders();
   const res = await fetch(`${API_BASE}/analyze`, {
     method: 'POST',
+    headers: authHeaders,
     body: formData,
   });
 
@@ -25,7 +49,7 @@ export async function analyzeCivicImage(file: File): Promise<CivicDetectionResul
       const err = await res.json();
       if (err.detail) errMsg = err.detail;
     } catch {
-      // fallback message
+      // fallback
     }
     throw new Error(errMsg);
   }
@@ -37,13 +61,15 @@ export async function uploadComplaintImage(file: File): Promise<string> {
   const formData = new FormData();
   formData.append('file', file);
 
+  const authHeaders = await getAuthHeaders();
   const res = await fetch(`${API_BASE}/complaints/upload`, {
     method: 'POST',
+    headers: authHeaders,
     body: formData,
   });
 
   if (!res.ok) {
-    throw new Error('Unable to submit your report. Please try again.');
+    throw new Error('Unable to upload complaint image. Please check your session and try again.');
   }
 
   const data = await res.json();
@@ -51,11 +77,10 @@ export async function uploadComplaintImage(file: File): Promise<string> {
 }
 
 export async function createComplaint(payload: ComplaintCreate): Promise<Complaint> {
+  const headers = await getJsonAuthHeaders();
   const res = await fetch(`${API_BASE}/complaints`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers,
     body: JSON.stringify(payload),
   });
 
@@ -88,7 +113,8 @@ export async function getComplaints(filters?: {
   if (filters?.limit) params.append('limit', filters.limit.toString());
 
   const url = `${API_BASE}/complaints${params.toString() ? '?' + params.toString() : ''}`;
-  const res = await fetch(url);
+  const headers = await getAuthHeaders();
+  const res = await fetch(url, { headers });
   if (!res.ok) {
     throw new Error('Failed to retrieve complaints.');
   }
@@ -96,9 +122,10 @@ export async function getComplaints(filters?: {
 }
 
 export async function getComplaintById(id: string): Promise<Complaint> {
-  const res = await fetch(`${API_BASE}/complaints/${id}`);
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_BASE}/complaints/${id}`, { headers });
   if (!res.ok) {
-    throw new Error('Complaint not found.');
+    throw new Error('Complaint not found or access denied.');
   }
   return res.json();
 }
@@ -107,11 +134,10 @@ export async function updateComplaintStatus(
   id: string,
   status: ComplaintStatus
 ): Promise<Complaint> {
+  const headers = await getJsonAuthHeaders();
   const res = await fetch(`${API_BASE}/complaints/${id}/status`, {
     method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers,
     body: JSON.stringify({ status }),
   });
 
@@ -123,7 +149,8 @@ export async function updateComplaintStatus(
 }
 
 export async function getDashboardStatistics(): Promise<DashboardStatistics> {
-  const res = await fetch(`${API_BASE}/dashboard/statistics`);
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_BASE}/dashboard/statistics`, { headers });
   if (!res.ok) {
     throw new Error('Failed to load dashboard statistics.');
   }
@@ -131,7 +158,8 @@ export async function getDashboardStatistics(): Promise<DashboardStatistics> {
 }
 
 export async function getDashboardHeatmap(): Promise<HeatmapPoint[]> {
-  const res = await fetch(`${API_BASE}/dashboard/heatmap`);
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_BASE}/dashboard/heatmap`, { headers });
   if (!res.ok) {
     throw new Error('Failed to load heatmap data.');
   }
@@ -145,14 +173,3 @@ export async function getDepartments(): Promise<Department[]> {
   }
   return res.json();
 }
-
-export async function resetDemoDataset(): Promise<{ status: string; message: string; demo_count: number; user_preserved_count: number }> {
-  const res = await fetch(`${API_BASE}/dashboard/reset-demo`, {
-    method: 'POST',
-  });
-  if (!res.ok) {
-    throw new Error('Failed to reset demo dataset.');
-  }
-  return res.json();
-}
-

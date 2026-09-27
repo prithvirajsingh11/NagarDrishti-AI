@@ -40,6 +40,7 @@ class ComplaintResponse(BaseModel):
     image_url: str
     status: str
     duplicate_of: Optional[str] = None
+    citizen_id: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

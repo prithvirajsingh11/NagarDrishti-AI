@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Camera, FileText, LayoutDashboard, User, LogOut, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { Camera, FileText, LogOut, ChevronDown, CheckCircle2 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { LanguageSelector } from './LanguageSelector';
 
 interface NavbarProps {
-  currentView: 'home' | 'report' | 'my-reports' | 'authority' | 'auth';
-  onNavigate: (view: 'home' | 'report' | 'my-reports' | 'authority' | 'auth') => void;
+  currentView: 'home' | 'report' | 'my-reports' | 'auth';
+  onNavigate: (view: 'home' | 'report' | 'my-reports' | 'auth', authMode?: 'login' | 'signup') => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
@@ -64,55 +64,54 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
           </div>
 
           {/* Navigation Links, Auth, & Language Selector */}
-          <div className="flex items-center gap-1 sm:gap-2">
-            <nav className="flex items-center gap-1 sm:gap-1.5">
-              <button
-                onClick={() => onNavigate('report')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
-                  currentView === 'report'
-                    ? 'bg-slate-900 text-white'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }`}
-              >
-                <Camera size={13} />
-                <span>{t('nav.report_issue', 'Report Issue')}</span>
-              </button>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {isLoggedIn ? (
+              // LOGGED IN NAVIGATION
+              <>
+                <nav className="flex items-center gap-1 sm:gap-1.5">
+                  <button
+                    onClick={() => onNavigate('home')}
+                    className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                      currentView === 'home'
+                        ? 'bg-slate-900 text-white'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>{t('nav.home', 'Home')}</span>
+                  </button>
 
-              <button
-                onClick={() => onNavigate('my-reports')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
-                  currentView === 'my-reports'
-                    ? 'bg-slate-900 text-white'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }`}
-              >
-                <FileText size={13} />
-                <span>{t('nav.my_reports', 'My Reports')}</span>
-              </button>
+                  <button
+                    onClick={() => onNavigate('report')}
+                    className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
+                      currentView === 'report'
+                        ? 'bg-slate-900 text-white'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                  >
+                    <Camera size={13} />
+                    <span>{t('nav.report_issue', 'Report Issue')}</span>
+                  </button>
 
-              <button
-                onClick={() => onNavigate('authority')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer border ${
-                  currentView === 'authority'
-                    ? 'bg-slate-900 text-white border-slate-900'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 border-slate-200'
-                }`}
-              >
-                <LayoutDashboard size={13} />
-                <span className="hidden md:inline">{t('nav.authority', 'Authority')}</span>
-                <span className="md:hidden">Portal</span>
-              </button>
-            </nav>
+                  <button
+                    onClick={() => onNavigate('my-reports')}
+                    className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
+                      currentView === 'my-reports'
+                        ? 'bg-slate-900 text-white'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                  >
+                    <FileText size={13} />
+                    <span>{t('nav.my_reports', 'My Reports')}</span>
+                  </button>
+                </nav>
 
-            {/* Citizen Auth Button / Profile Menu */}
-            <div className="relative inline-block" ref={profileRef}>
-              {isLoggedIn && citizen ? (
-                <div>
+                {/* Profile Dropdown */}
+                <div className="relative inline-block ml-1" ref={profileRef}>
                   <button
                     type="button"
                     onClick={() => setProfileOpen(!profileOpen)}
                     className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-200 bg-white/80 hover:bg-slate-100 text-xs font-medium text-slate-800 transition-colors cursor-pointer"
-                    title={citizen.name}
+                    title={citizen?.name}
                   >
                     <div className="w-5 h-5 rounded-full bg-slate-900 text-white text-[10px] font-bold flex items-center justify-center">
                       {initials}
@@ -130,24 +129,17 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
                           {initials}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="font-bold text-slate-900 truncate">{citizen.name}</div>
-                          <div className="text-[10px] text-slate-500 flex items-center gap-1">
-                            <span>{citizen.age} {t('auth.years_old', 'yrs')}</span>
-                            <span>•</span>
-                            <span className="text-emerald-700 font-medium flex items-center gap-0.5">
-                              <CheckCircle2 size={10} />
-                              {t('auth.verified_citizen', 'Citizen')}
-                            </span>
+                          <div className="font-bold text-slate-900 truncate">{citizen?.name}</div>
+                          <div className="text-[10px] text-emerald-700 font-medium flex items-center gap-0.5 mt-0.5">
+                            <CheckCircle2 size={10} />
+                            <span>{t('auth.verified_citizen', 'Verified Citizen')}</span>
                           </div>
                         </div>
                       </div>
 
                       <div className="space-y-1 text-[11px] text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-100">
                         <div className="truncate font-mono text-[10px]">
-                          <span className="text-slate-400">Gmail:</span> {citizen.email}
-                        </div>
-                        <div className="font-mono text-[10px]">
-                          <span className="text-slate-400">Phone:</span> +91 {citizen.phone}
+                          <span className="text-slate-400">Email:</span> {citizen?.email}
                         </div>
                       </div>
 
@@ -177,24 +169,29 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
                     </div>
                   )}
                 </div>
-              ) : (
+              </>
+            ) : (
+              // LOGGED OUT NAVIGATION
+              <div className="flex items-center gap-1 sm:gap-2">
                 <button
                   type="button"
-                  onClick={() => onNavigate('auth')}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer border ${
-                    currentView === 'auth'
-                      ? 'bg-slate-900 text-white border-slate-900'
-                      : 'text-slate-700 bg-white/80 hover:bg-slate-100 border-slate-200/90'
-                  }`}
+                  onClick={() => onNavigate('auth', 'login')}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
-                  <User size={13} />
-                  <span>{t('auth.signup', 'Sign Up')} / {t('auth.login', 'Log In')}</span>
+                  {t('auth.login', 'Sign In')}
                 </button>
-              )}
-            </div>
+                <button
+                  type="button"
+                  onClick={() => onNavigate('auth', 'signup')}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white transition-colors cursor-pointer shadow-xs"
+                >
+                  {t('auth.signup', 'Sign Up')}
+                </button>
+              </div>
+            )}
 
-            {/* Language Selector Dropdown */}
-            <div className="ml-1 pl-1 border-l border-slate-200">
+            {/* Language Selector */}
+            <div className="pl-1 sm:pl-1.5 border-l border-slate-200/80">
               <LanguageSelector />
             </div>
           </div>

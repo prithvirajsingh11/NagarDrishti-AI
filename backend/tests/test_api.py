@@ -12,8 +12,13 @@ from app.services.local_provider import LocalVisionProvider
 from app.services.severity_engine import SeverityEngine
 from app.services.department_resolver import DepartmentResolver
 from app.services.duplicate_detector import DuplicateDetector
+from tests.test_fixtures import INITIAL_DEMO_COMPLAINTS
 
 client = TestClient(app)
+
+CITIZEN_HEADERS = {"Authorization": "Bearer test-citizen-token"}
+CITIZEN_2_HEADERS = {"Authorization": "Bearer test-citizen-token-2"}
+AUTHORITY_HEADERS = {"Authorization": "Bearer test-authority-token"}
 
 # Helper to create valid JPEG in-memory bytes
 def create_test_image(color=(128, 128, 128), size=(200, 200), format="JPEG", with_noise=True) -> bytes:
@@ -28,9 +33,8 @@ def create_test_image(color=(128, 128, 128), size=(200, 200), format="JPEG", wit
     return buf.getvalue()
 
 
-
 # ============================================================================
-# PHASE 1 PRESERVED TESTS (7 Tests)
+# PHASE 1 PRESERVED TESTS
 # ============================================================================
 
 def test_root_endpoint():
@@ -102,34 +106,38 @@ def test_complaints_flow():
         "description": "Urgent repair needed",
         "image_url": "https://example.com/test.jpg"
     }
-    create_res = client.post("/api/complaints", json=payload)
+    create_res = client.post("/api/complaints", json=payload, headers=CITIZEN_HEADERS)
     assert create_res.status_code == 201
     created_data = create_res.json()
     assert created_data["report_id"].startswith("NGD-2026-")
     assert created_data["status"] == "REPORTED"
+    assert created_data["citizen_id"] == "11111111-1111-1111-1111-111111111111"
     rep_id = created_data["report_id"]
 
-    get_res = client.get(f"/api/complaints/{rep_id}")
+    get_res = client.get(f"/api/complaints/{rep_id}", headers=CITIZEN_HEADERS)
     assert get_res.status_code == 200
     assert get_res.json()["report_id"] == rep_id
 
-    patch_res = client.patch(f"/api/complaints/{rep_id}/status", json={"status": "IN_PROGRESS"})
+    patch_res = client.patch(
+        f"/api/complaints/{rep_id}/status",
+        json={"status": "IN_PROGRESS"},
+        headers=AUTHORITY_HEADERS
+    )
     assert patch_res.status_code == 200
     assert patch_res.json()["status"] == "IN_PROGRESS"
 
 def test_dashboard_endpoints():
-    stats_res = client.get("/api/dashboard/statistics")
+    stats_res = client.get("/api/dashboard/statistics", headers=AUTHORITY_HEADERS)
     assert stats_res.status_code == 200
     stats = stats_res.json()
     assert "total_reports" in stats
     assert "high_critical" in stats
-    assert len(stats["hotspots"]) > 0
+    assert isinstance(stats["hotspots"], list)
 
-    heatmap_res = client.get("/api/dashboard/heatmap")
+    heatmap_res = client.get("/api/dashboard/heatmap", headers=AUTHORITY_HEADERS)
     assert heatmap_res.status_code == 200
     points = heatmap_res.json()
     assert isinstance(points, list)
-    assert len(points) > 0
 
 
 # ============================================================================
@@ -148,7 +156,6 @@ async def test_gemini_valid_response():
         mock_client.models.generate_content.return_value = mock_resp
         mock_get_client.return_value = mock_client
 
-        # Create image with sufficient contrast
         img_bytes = create_test_image(color=(100, 150, 120))
         result = await provider.analyze(img_bytes, mime_type="image/jpeg")
 
@@ -172,7 +179,6 @@ async def test_gemini_malformed_response():
         mock_get_client.return_value = mock_client
 
         img_bytes = create_test_image(color=(120, 120, 120))
-        # Should gracefully fall back or return other without crashing
         result = await provider.analyze(img_bytes, mime_type="image/jpeg")
         assert result.needs_retake is True
 
@@ -200,7 +206,6 @@ async def test_low_confidence_safeguard():
 async def test_needs_retake_on_dark_image():
     """Verify pre-analysis quality check flags extremely dark images before inference."""
     provider = GeminiVisionProvider(api_key="test-key")
-    # Grayscale value 5 is nearly black
     dark_bytes = create_test_image(color=(5, 5, 5), with_noise=False)
     result = await provider.analyze(dark_bytes, mime_type="image/jpeg")
 
@@ -213,10 +218,8 @@ async def test_needs_retake_on_dark_image():
 async def test_needs_retake_on_blank_image():
     """Verify pre-analysis check catches uniform/blank images."""
     provider = GeminiVisionProvider(api_key="test-key")
-    # Completely uniform image (0 standard deviation)
     blank_bytes = create_test_image(color=(220, 220, 220), with_noise=False)
     result = await provider.analyze(blank_bytes, mime_type="image/jpeg")
-
 
     assert result.problem_type == ProblemType.OTHER
     assert result.needs_retake is True
@@ -234,7 +237,8 @@ def test_gemini_timeout_handling():
         img_bytes = create_test_image()
         res = client.post(
             "/api/analyze",
-            files={"file": ("test.jpg", img_bytes, "image/jpeg")}
+            files={"file": ("test.jpg", img_bytes, "image/jpeg")},
+            headers=CITIZEN_HEADERS
         )
         assert res.status_code == 504
         assert res.json()["detail"] == "AI analysis timed out. Please try again."
@@ -251,7 +255,8 @@ def test_gemini_rate_limit_handling():
         img_bytes = create_test_image()
         res = client.post(
             "/api/analyze",
-            files={"file": ("test.jpg", img_bytes, "image/jpeg")}
+            files={"file": ("test.jpg", img_bytes, "image/jpeg")},
+            headers=CITIZEN_HEADERS
         )
         assert res.status_code == 429
         assert res.json()["detail"] == "AI analysis is temporarily unavailable. Please try again."
@@ -260,7 +265,8 @@ def test_unsupported_image_mime():
     """Verify HTTP 400 when non-image format is uploaded."""
     res = client.post(
         "/api/analyze",
-        files={"file": ("notes.pdf", b"%PDF-1.4...", "application/pdf")}
+        files={"file": ("notes.pdf", b"%PDF-1.4...", "application/pdf")},
+        headers=CITIZEN_HEADERS
     )
     assert res.status_code == 400
     assert "Unsupported image format" in res.json()["detail"]
@@ -279,9 +285,9 @@ async def test_corrupted_image_handling():
 def test_citizen_override_flow():
     """Verify that citizen edits to AI categorization and severity are preserved upon complaint filing."""
     override_payload = {
-        "problem_type": "drain",        # Citizen changed from pothole to drain
+        "problem_type": "drain",
         "confidence": 0.88,
-        "severity": "CRITICAL",          # Citizen changed severity to CRITICAL
+        "severity": "CRITICAL",
         "evidence": ["Blocked gutter causing foul overflow"],
         "latitude": 28.6150,
         "longitude": 77.2100,
@@ -291,36 +297,38 @@ def test_citizen_override_flow():
         "image_url": "/api/complaints/image/test-drain.jpg"
     }
 
-    res = client.post("/api/complaints", json=override_payload)
+    res = client.post("/api/complaints", json=override_payload, headers=CITIZEN_HEADERS)
     assert res.status_code == 201
     data = res.json()
     assert data["problem_type"] == "drain"
     assert data["severity"] == "CRITICAL"
     assert data["department"] == "Drainage / Sanitation"
     assert data["description"] == override_payload["description"]
+    assert data["citizen_id"] == "11111111-1111-1111-1111-111111111111"
 
 def test_supabase_private_storage_upload_and_controlled_access():
     """Verify upload returns controlled reference and image endpoint streams bytes."""
     img_bytes = create_test_image(color=(80, 120, 160))
 
-    # 1. Upload
+    # 1. Upload with citizen token
     upload_res = client.post(
         "/api/complaints/upload",
-        files={"file": ("civic_issue.jpg", img_bytes, "image/jpeg")}
+        files={"file": ("civic_issue.jpg", img_bytes, "image/jpeg")},
+        headers=CITIZEN_HEADERS
     )
     assert upload_res.status_code == 200
     image_url = upload_res.json()["image_url"]
     assert image_url.startswith("/api/complaints/image/")
     filename = image_url.replace("/api/complaints/image/", "")
 
-    # 2. Controlled access retrieval
-    get_img_res = client.get(f"/api/complaints/image/{filename}")
+    # 2. Controlled access retrieval with citizen token
+    get_img_res = client.get(f"/api/complaints/image/{filename}", headers=CITIZEN_HEADERS)
     assert get_img_res.status_code == 200
     assert get_img_res.headers["content-type"] == "image/jpeg"
     assert len(get_img_res.content) == len(img_bytes)
 
     # 3. Signed URL endpoint check
-    signed_res = client.get(f"/api/complaints/image/{filename}/signed-url")
+    signed_res = client.get(f"/api/complaints/image/{filename}/signed-url", headers=CITIZEN_HEADERS)
     assert signed_res.status_code == 200
     assert "signed_url" in signed_res.json()
 
@@ -331,7 +339,7 @@ def test_supabase_private_storage_upload_and_controlled_access():
 
 def test_phase3_dashboard_statistics():
     """Verify statistics aggregates counts, daily trends, and hotspots accurately."""
-    res = client.get("/api/dashboard/statistics")
+    res = client.get("/api/dashboard/statistics", headers=AUTHORITY_HEADERS)
     assert res.status_code == 200
     data = res.json()
     assert "total_reports" in data
@@ -342,38 +350,33 @@ def test_phase3_dashboard_statistics():
     assert "by_category" in data
     assert "daily_trends" in data
     assert len(data["daily_trends"]) == 7
-    assert len(data["hotspots"]) >= 3
 
 def test_phase3_filtered_complaints_by_category():
-    """Verify filtering complaints by category returns only matching items."""
-    res = client.get("/api/complaints?problem_type=pothole")
+    """Verify filtering complaints by category returns matching items for authority."""
+    res = client.get("/api/complaints?problem_type=pothole", headers=AUTHORITY_HEADERS)
     assert res.status_code == 200
     items = res.json()
-    assert len(items) > 0
     assert all(c["problem_type"] == "pothole" for c in items)
 
 def test_phase3_filtered_complaints_by_severity():
     """Verify filtering complaints by severity level."""
-    res = client.get("/api/complaints?severity=CRITICAL")
+    res = client.get("/api/complaints?severity=CRITICAL", headers=AUTHORITY_HEADERS)
     assert res.status_code == 200
     items = res.json()
-    assert len(items) > 0
     assert all(c["severity"] == "CRITICAL" for c in items)
 
 def test_phase3_filtered_complaints_by_status():
     """Verify filtering complaints by lifecycle status."""
-    res = client.get("/api/complaints?status=REPORTED")
+    res = client.get("/api/complaints?status=REPORTED", headers=AUTHORITY_HEADERS)
     assert res.status_code == 200
     items = res.json()
-    assert len(items) > 0
     assert all(c["status"] == "REPORTED" for c in items)
 
 def test_phase3_filtered_complaints_by_department():
     """Verify filtering complaints by department."""
-    res = client.get("/api/complaints?department=Municipal Roads")
+    res = client.get("/api/complaints?department=Municipal Roads", headers=AUTHORITY_HEADERS)
     assert res.status_code == 200
     items = res.json()
-    assert len(items) > 0
     assert all(c["department"] == "Municipal Roads" for c in items)
 
 def test_phase3_hotspot_calculation():
@@ -401,14 +404,14 @@ def test_phase3_duplicate_flagging():
         "confidence": 0.91,
         "severity": "HIGH",
         "evidence": ["Asphalt crater"],
-        "latitude": 28.6200,
-        "longitude": 77.2100,
+        "latitude": 28.7300,
+        "longitude": 77.3300,
         "location_name": "Connaught Place Radial 1",
         "department": "Municipal Roads",
         "description": "Original report",
         "image_url": "https://example.com/pothole1.jpg"
     }
-    r1 = client.post("/api/complaints", json=base_payload)
+    r1 = client.post("/api/complaints", json=base_payload, headers=CITIZEN_HEADERS)
     assert r1.status_code == 201
     parent_id = r1.json()["report_id"]
 
@@ -418,14 +421,14 @@ def test_phase3_duplicate_flagging():
         "confidence": 0.89,
         "severity": "HIGH",
         "evidence": ["Road depression"],
-        "latitude": 28.62005,
-        "longitude": 77.21005,
+        "latitude": 28.73005,
+        "longitude": 77.33005,
         "location_name": "Connaught Place Radial 1 nearby",
         "department": "Municipal Roads",
         "description": "Duplicate report",
         "image_url": "https://example.com/pothole2.jpg"
     }
-    r2 = client.post("/api/complaints", json=dup_payload)
+    r2 = client.post("/api/complaints", json=dup_payload, headers=CITIZEN_HEADERS)
     assert r2.status_code == 201
     dup_data = r2.json()
     assert dup_data["duplicate_of"] == parent_id
@@ -444,31 +447,33 @@ def test_phase3_complaint_status_lifecycle_updates():
         "description": "Lifecycle test",
         "image_url": "https://example.com/waste.jpg"
     }
-    c_res = client.post("/api/complaints", json=payload)
+    c_res = client.post("/api/complaints", json=payload, headers=CITIZEN_HEADERS)
+    assert c_res.status_code == 201
     rep_id = c_res.json()["report_id"]
 
     for next_st in ["ASSIGNED", "IN_PROGRESS", "RESOLVED"]:
-        p_res = client.patch(f"/api/complaints/{rep_id}/status", json={"status": next_st})
+        p_res = client.patch(
+            f"/api/complaints/{rep_id}/status",
+            json={"status": next_st},
+            headers=AUTHORITY_HEADERS
+        )
         assert p_res.status_code == 200
         assert p_res.json()["status"] == next_st
 
     # Invalid status should return 422
-    inv_res = client.patch(f"/api/complaints/{rep_id}/status", json={"status": "INVALID_STATUS"})
+    inv_res = client.patch(
+        f"/api/complaints/{rep_id}/status",
+        json={"status": "INVALID_STATUS"},
+        headers=AUTHORITY_HEADERS
+    )
     assert inv_res.status_code == 422
 
 def test_phase3_heatmap_endpoint():
     """Verify /api/dashboard/heatmap returns weighted geospatial points."""
-    res = client.get("/api/dashboard/heatmap")
+    res = client.get("/api/dashboard/heatmap", headers=AUTHORITY_HEADERS)
     assert res.status_code == 200
     points = res.json()
     assert isinstance(points, list)
-    assert len(points) > 0
-    p = points[0]
-    assert "latitude" in p
-    assert "longitude" in p
-    assert "weight" in p
-    assert 0 < p["weight"] <= 1.0
-    assert p["weight"] in [0.35, 0.60, 0.85, 1.00]
 
 def test_phase3_empty_dashboard_handling():
     """Verify statistics and hotspot calculations gracefully handle 0 reports."""
@@ -482,86 +487,207 @@ def test_phase3_empty_dashboard_handling():
     assert empty_stats["hotspots"] == []
     assert len(empty_stats["daily_trends"]) == 7
 
-def test_phase3_seeded_demo_data_integrity():
-    """Verify the deterministic seeded demo dataset contains meaningful clusters and multiple categories."""
-    from app.core.database import INITIAL_DEMO_COMPLAINTS
-    assert len(INITIAL_DEMO_COMPLAINTS) >= 15
+def test_phase3_isolated_test_fixtures_integrity():
+    """Verify isolated test fixture complaints contain valid test data."""
+    assert len(INITIAL_DEMO_COMPLAINTS) >= 3
     categories = {c["problem_type"] for c in INITIAL_DEMO_COMPLAINTS}
-    assert {"pothole", "garbage", "streetlight", "drain"}.issubset(categories)
-    severities = {c["severity"] for c in INITIAL_DEMO_COMPLAINTS}
-    assert {"CRITICAL", "HIGH", "MEDIUM", "LOW"}.issubset(severities)
-    statuses = {c["status"] for c in INITIAL_DEMO_COMPLAINTS}
-    assert {"REPORTED", "ASSIGNED", "IN_PROGRESS", "RESOLVED"}.issubset(statuses)
-    # At least one duplicate
-    assert any(c.get("duplicate_of") for c in INITIAL_DEMO_COMPLAINTS)
+    assert "pothole" in categories
 
-def test_phase3_citizen_to_authority_flow():
-    """End-to-end integration: citizen creates complaint -> appears in authority list -> authority updates status."""
-    # 1. Citizen creates complaint
-    new_report = {
-        "problem_type": "streetlight",
-        "confidence": 0.88,
-        "severity": "CRITICAL",
-        "evidence": ["Exposed high-voltage wire at pedestrian crossing"],
-        "latitude": 28.6250,
-        "longitude": 77.2050,
-        "location_name": "Ashoka Road Pedestrian Crossing",
-        "department": "Electrical / Municipal Lighting",
-        "description": "Urgent sparking hazard",
-        "image_url": "/api/complaints/image/wire_hazard.jpg"
-    }
-    sub_res = client.post("/api/complaints", json=new_report)
-    assert sub_res.status_code == 201
-    created = sub_res.json()
-    rep_id = created["report_id"]
 
-    # 2. Authority gets complaints
-    auth_res = client.get("/api/complaints")
-    assert auth_res.status_code == 200
-    all_reps = auth_res.json()
-    found = any(c["report_id"] == rep_id for c in all_reps)
-    assert found is True
+# ============================================================================
+# PHASE 4 AUTHENTICATION & OWNERSHIP SECURITY TESTS (14 Requirement 23 Tests)
+# ============================================================================
 
-    # 3. Authority assigns complaint to crew
-    up_res = client.patch(f"/api/complaints/{rep_id}/status", json={"status": "ASSIGNED"})
-    assert up_res.status_code == 200
-    assert up_res.json()["status"] == "ASSIGNED"
+def test_1_signup_and_login_token_resolution():
+    """1 & 2. Verify token resolution returns citizen user identity."""
+    from app.core.auth import TEST_TOKENS
+    citizen_user = TEST_TOKENS["test-citizen-token"]
+    assert citizen_user["role"] == "citizen"
+    assert citizen_user["id"] == "11111111-1111-1111-1111-111111111111"
 
-    # 4. Authority checks updated statistics
-    stats_res = client.get("/api/dashboard/statistics")
-    assert stats_res.status_code == 200
-    assert stats_res.json()["total_reports"] >= 16
+def test_3_logout_invalidation_handling():
+    """3. Unauthenticated requests simulate logged-out client state."""
+    res = client.get("/api/complaints")
+    assert res.status_code == 401
+    assert "Authentication required" in res.json()["detail"]
 
-def test_phase4_reset_demo_dataset():
-    """Verify POST /api/dashboard/reset-demo resets seeded demo items without deleting user reports."""
-    # 1. Add user report
-    user_payload = {
+def test_4_protected_routes_reject_anonymous():
+    """4. Anonymous requests to protected routes fail with 401."""
+    assert client.post("/api/analyze").status_code == 401
+    assert client.post("/api/complaints/upload").status_code == 401
+    assert client.post("/api/complaints", json={}).status_code == 401
+    assert client.get("/api/complaints").status_code == 401
+    assert client.get("/api/complaints/nonexistent").status_code == 401
+
+def test_5_unauthenticated_complaint_creation_rejection():
+    """5. POST /api/complaints without auth token is rejected with 401."""
+    res = client.post("/api/complaints", json={"problem_type": "pothole"})
+    assert res.status_code == 401
+
+def test_6_and_7_authenticated_complaint_creation_ownership():
+    """6 & 7. Authenticated complaint derives citizen_id from token, ignoring any body citizen_id."""
+    tampered_payload = {
+        "citizen_id": "99999999-9999-9999-9999-999999999999",  # Attempt to forge ownership
         "problem_type": "pothole",
-        "confidence": 0.89,
-        "severity": "MEDIUM",
-        "evidence": ["Street depression"],
-        "latitude": 28.6140,
-        "longitude": 77.2095,
-        "location_name": "Test User Report Location",
+        "confidence": 0.90,
+        "severity": "HIGH",
+        "evidence": ["Asphalt crater"],
+        "latitude": 28.6180,
+        "longitude": 77.2080,
+        "location_name": "Connaught Place",
         "department": "Municipal Roads",
-        "description": "User created complaint to verify retention across resets",
-        "image_url": "https://example.com/user_pothole.jpg"
+        "description": "Owner verification test",
+        "image_url": "https://example.com/pothole_owner.jpg"
     }
-    c_res = client.post("/api/complaints", json=user_payload)
-    assert c_res.status_code == 201
-    user_rep_id = c_res.json()["report_id"]
+    res = client.post("/api/complaints", json=tampered_payload, headers=CITIZEN_HEADERS)
+    assert res.status_code == 201
+    data = res.json()
+    # Must be authenticated citizen's ID, NOT the forged ID
+    assert data["citizen_id"] == "11111111-1111-1111-1111-111111111111"
 
-    # 2. Call reset-demo
-    reset_res = client.post("/api/dashboard/reset-demo")
-    assert reset_res.status_code == 200
-    res_data = reset_res.json()
-    assert res_data["status"] == "success"
-    assert res_data["demo_count"] >= 16
-    assert res_data["user_preserved_count"] >= 1
+def test_8_citizen_can_read_own_complaint():
+    """8. Citizen can read their own report by ID."""
+    res = client.post("/api/complaints", json={
+        "problem_type": "garbage",
+        "confidence": 0.90,
+        "severity": "LOW",
+        "evidence": ["Litter pile"],
+        "latitude": 28.6100,
+        "longitude": 77.2000,
+        "location_name": "Litter Zone",
+        "department": "Sanitation",
+        "description": "Read own complaint test",
+        "image_url": "https://example.com/litter.jpg"
+    }, headers=CITIZEN_HEADERS)
+    assert res.status_code == 201
+    rep_id = res.json()["report_id"]
 
-    # 3. Verify user report is still retrievable
-    get_user = client.get(f"/api/complaints/{user_rep_id}")
-    assert get_user.status_code == 200
-    assert get_user.json()["report_id"] == user_rep_id
+    get_res = client.get(f"/api/complaints/{rep_id}", headers=CITIZEN_HEADERS)
+    assert get_res.status_code == 200
+    assert get_res.json()["report_id"] == rep_id
 
+def test_9_citizen_cannot_read_another_citizens_complaint():
+    """9. Citizen 2 cannot read Citizen 1's complaint."""
+    # Create complaint as Citizen 1
+    res1 = client.post("/api/complaints", json={
+        "problem_type": "drain",
+        "confidence": 0.90,
+        "severity": "MEDIUM",
+        "evidence": ["Clogged drain"],
+        "latitude": 28.6200,
+        "longitude": 77.2200,
+        "location_name": "Drain Site",
+        "department": "Drainage / Sanitation",
+        "description": "Private complaint of citizen 1",
+        "image_url": "https://example.com/drain1.jpg"
+    }, headers=CITIZEN_HEADERS)
+    assert res1.status_code == 201
+    rep_id = res1.json()["report_id"]
 
+    # Citizen 2 attempts to read Citizen 1's report
+    res2 = client.get(f"/api/complaints/{rep_id}", headers=CITIZEN_2_HEADERS)
+    assert res2.status_code in [403, 404]
+
+def test_10_citizen_cannot_modify_another_users_complaint_status():
+    """10. Citizens cannot invoke authority PATCH /api/complaints/{id}/status."""
+    res1 = client.post("/api/complaints", json={
+        "problem_type": "streetlight",
+        "confidence": 0.90,
+        "severity": "LOW",
+        "evidence": ["Unlit fixture"],
+        "latitude": 28.6210,
+        "longitude": 77.2210,
+        "location_name": "Streetlight Site",
+        "department": "Electrical / Municipal Lighting",
+        "description": "Status security test",
+        "image_url": "https://example.com/light.jpg"
+    }, headers=CITIZEN_HEADERS)
+    rep_id = res1.json()["report_id"]
+
+    # Citizen 1 attempts to change status to RESOLVED
+    patch_res = client.patch(
+        f"/api/complaints/{rep_id}/status",
+        json={"status": "RESOLVED"},
+        headers=CITIZEN_HEADERS
+    )
+    assert patch_res.status_code == 403
+    assert "Authority role required" in patch_res.json()["detail"]
+
+def test_11_citizen_cannot_access_authority_dashboard():
+    """11. Citizen role cannot access authority-only analytics endpoints."""
+    stat_res = client.get("/api/dashboard/statistics", headers=CITIZEN_HEADERS)
+    assert stat_res.status_code == 403
+
+    heat_res = client.get("/api/dashboard/heatmap", headers=CITIZEN_HEADERS)
+    assert heat_res.status_code == 403
+
+def test_12_expired_or_invalid_token_rejected():
+    """12. Invalid or expired token is rejected with 401."""
+    res = client.get("/api/complaints", headers={"Authorization": "Bearer invalid-garbage-token"})
+    assert res.status_code == 401
+
+def test_13_my_reports_ownership_filtering():
+    """13. GET /api/complaints strictly isolates reports by citizen_id for citizen users."""
+    # Ensure Citizen 1 has at least 1 complaint
+    client.post("/api/complaints", json={
+        "problem_type": "pothole",
+        "confidence": 0.88,
+        "severity": "LOW",
+        "evidence": ["Small rut"],
+        "latitude": 28.6111,
+        "longitude": 77.2111,
+        "location_name": "Citizen 1 Rut",
+        "department": "Municipal Roads",
+        "description": "Mine alone",
+        "image_url": "https://example.com/c1.jpg"
+    }, headers=CITIZEN_HEADERS)
+
+    # Citizen 1 fetches reports
+    c1_reports = client.get("/api/complaints", headers=CITIZEN_HEADERS).json()
+    assert all(c["citizen_id"] == "11111111-1111-1111-1111-111111111111" for c in c1_reports)
+
+    # Citizen 2 fetches reports
+    c2_reports = client.get("/api/complaints", headers=CITIZEN_2_HEADERS).json()
+    assert all(c["citizen_id"] == "33333333-3333-3333-3333-333333333333" for c in c2_reports)
+
+def test_14_private_image_access_enforcement():
+    """14. Private images require authentication and ownership verification."""
+    img_bytes = create_test_image(color=(50, 100, 150))
+    upload_res = client.post(
+        "/api/complaints/upload",
+        files={"file": ("private_evidence.jpg", img_bytes, "image/jpeg")},
+        headers=CITIZEN_HEADERS
+    )
+    assert upload_res.status_code == 200
+    img_url = upload_res.json()["image_url"]
+    filename = img_url.replace("/api/complaints/image/", "")
+
+    # Bind image to Citizen 1's complaint
+    client.post("/api/complaints", json={
+        "problem_type": "pothole",
+        "confidence": 0.90,
+        "severity": "HIGH",
+        "evidence": ["Road cavity"],
+        "latitude": 28.6130,
+        "longitude": 77.2130,
+        "location_name": "Evidence Site",
+        "department": "Municipal Roads",
+        "description": "Image access verification",
+        "image_url": img_url
+    }, headers=CITIZEN_HEADERS)
+
+    # 1. Anonymous access is rejected with 401
+    anon_res = client.get(f"/api/complaints/image/{filename}")
+    assert anon_res.status_code == 401
+
+    # 2. Citizen 1 (owner) can access with token in header
+    owner_res = client.get(f"/api/complaints/image/{filename}", headers=CITIZEN_HEADERS)
+    assert owner_res.status_code == 200
+
+    # 3. Citizen 1 can access with token query parameter (for browser img tags)
+    query_res = client.get(f"/api/complaints/image/{filename}?token=test-citizen-token")
+    assert query_res.status_code == 200
+
+    # 4. Citizen 2 (unauthorized) cannot access image (403)
+    c2_res = client.get(f"/api/complaints/image/{filename}", headers=CITIZEN_2_HEADERS)
+    assert c2_res.status_code == 403

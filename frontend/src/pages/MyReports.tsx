@@ -6,6 +6,7 @@ import { ProblemIcon, getProblemLabel } from '../components/ProblemIcon';
 import { StatusBadge } from '../components/StatusBadge';
 import { SeverityBadge } from '../components/SeverityBadge';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
 
 interface MyReportsProps {
   onStartNewReport: () => void;
@@ -14,6 +15,7 @@ interface MyReportsProps {
 
 export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selectedComplaintId }) => {
   const { t } = useLanguage();
+  const { token } = useAuth();
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -221,7 +223,11 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
               {/* Image Preview */}
               <div className="h-44 w-full rounded-lg overflow-hidden bg-slate-100 border border-slate-200/70">
                 <img
-                  src={activeComplaint.image_url}
+                  src={
+                    activeComplaint.image_url?.startsWith('/api') && token
+                      ? `${activeComplaint.image_url}?token=${token}`
+                      : activeComplaint.image_url
+                  }
                   alt={activeComplaint.problem_type}
                   className="w-full h-full object-cover"
                 />
