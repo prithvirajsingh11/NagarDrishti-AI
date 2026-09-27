@@ -386,6 +386,23 @@ class Database:
 
     async def create_complaint(self, data: dict) -> dict:
         now = datetime.now(timezone.utc).isoformat()
+        
+        client = self._get_client()
+        if client:
+            try:
+                latest = client.table("complaints").select("report_id").order("created_at", desc=True).limit(30).execute()
+                for item in (latest.data or []):
+                    rid = item.get("report_id", "")
+                    if rid.startswith("NGD-2026-"):
+                        try:
+                            seq = int(rid.split("-")[-1])
+                            if seq >= self._report_seq:
+                                self._report_seq = seq + 1
+                        except ValueError:
+                            pass
+            except Exception:
+                pass
+
         report_id = f"NGD-2026-{self._report_seq:05d}"
         self._report_seq += 1
 
@@ -417,6 +434,9 @@ class Database:
             "updated_at": now
         }
 
+        # Maintain in-memory store for cache and demo reset tracking
+        self._memory_complaints.insert(0, complaint_record)
+
         # Try Supabase insert
         client = self._get_client()
         if client:
@@ -428,8 +448,6 @@ class Database:
             except Exception as e:
                 logger.warning(f"Failed to insert into Supabase ({e}). Persisting in local storage.")
 
-        # In-memory persistence
-        self._memory_complaints.insert(0, complaint_record)
         return complaint_record
 
     async def get_complaints(
@@ -472,13 +490,21 @@ class Database:
 
         return filtered[:limit]
 
+    def _is_uuid(self, val: str) -> bool:
+        try:
+            uuid.UUID(str(val))
+            return True
+        except (ValueError, TypeError, AttributeError):
+            return False
+
     async def get_complaint_by_id(self, id_or_report_id: str) -> Optional[Dict]:
         client = self._get_client()
         if client:
             try:
-                res = client.table("complaints").select("*").or_(
-                    f"id.eq.{id_or_report_id},report_id.eq.{id_or_report_id}"
-                ).execute()
+                if self._is_uuid(id_or_report_id):
+                    res = client.table("complaints").select("*").eq("id", id_or_report_id).execute()
+                else:
+                    res = client.table("complaints").select("*").eq("report_id", id_or_report_id).execute()
                 if res.data:
                     return res.data[0]
             except Exception as e:
@@ -502,10 +528,15 @@ class Database:
         client = self._get_client()
         if client:
             try:
-                res = client.table("complaints").update({
+                table = client.table("complaints")
+                update_data = {
                     "status": new_status,
                     "updated_at": now
-                }).or_(f"id.eq.{id_or_report_id},report_id.eq.{id_or_report_id}").execute()
+                }
+                if self._is_uuid(id_or_report_id):
+                    res = table.update(update_data).eq("id", id_or_report_id).execute()
+                else:
+                    res = table.update(update_data).eq("report_id", id_or_report_id).execute()
                 if res.data:
                     return res.data[0]
             except Exception as e:
