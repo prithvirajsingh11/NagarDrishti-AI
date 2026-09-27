@@ -152,25 +152,42 @@ class GeminiVisionProvider(VisionAnalyzer):
             from google.genai.errors import APIError
             client = self._get_client()
 
-            # Execute model call in worker thread to prevent event loop blocking
-            def _call_model():
-                return client.models.generate_content(
-                    model=self.model_name,
-                    contents=[
-                        types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
-                        SYSTEM_PROMPT
-                    ],
-                    config=types.GenerateContentConfig(
-                        response_mime_type="application/json",
-                        temperature=0.1,
-                    )
-                )
+            models_to_try = []
+            for m in [self.model_name, "gemini-3.5-flash-lite", "gemini-3.7-flash"]:
+                if m and m not in models_to_try:
+                    models_to_try.append(m)
 
-            # Enforce 15-second timeout on Gemini inference
-            response = await asyncio.wait_for(
-                asyncio.to_thread(_call_model),
-                timeout=15.0
-            )
+            response = None
+            last_err = None
+            for m in models_to_try:
+                try:
+                    def _call_model(target_model=m):
+                        return client.models.generate_content(
+                            model=target_model,
+                            contents=[
+                                types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
+                                SYSTEM_PROMPT
+                            ],
+                            config=types.GenerateContentConfig(
+                                response_mime_type="application/json",
+                                temperature=0.1,
+                            )
+                        )
+
+                    response = await asyncio.wait_for(
+                        asyncio.to_thread(_call_model),
+                        timeout=15.0
+                    )
+                    if response and response.text:
+                        break
+                except Exception as model_err:
+                    last_err = model_err
+                    logger.warning(f"Gemini model {m} failed: {model_err}. Trying alternate if available...")
+
+            if not response or not response.text:
+                if last_err:
+                    raise last_err
+                raise RuntimeError("Empty response from Gemini Vision.")
 
             raw_text = response.text or "{}"
             # Extract JSON block

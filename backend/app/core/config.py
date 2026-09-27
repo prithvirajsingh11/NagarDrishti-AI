@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     # AI Configuration
     AI_PROVIDER: str = "gemini"  # "gemini" | "local" | "mock"
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-3.8-flash"
+    GEMINI_MODEL: str = "gemini-3.5-flash-lite"
     AI_CONFIDENCE_THRESHOLD: float = 0.75
     
     # Supabase Configuration
@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     CORS_ORIGINS: Union[List[str], str] = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
         "http://localhost:3000",
         "*"
     ]
