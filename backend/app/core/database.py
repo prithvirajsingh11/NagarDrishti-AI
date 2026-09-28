@@ -156,6 +156,31 @@ class Database:
         self._memory_complaints.insert(0, dict(complaint_record))
         self._save_to_disk()
 
+        # Automatic sync to Authority Portal (both Render production and localhost)
+        try:
+            import urllib.request
+            auth_payload = json.dumps(complaint_record).encode('utf-8')
+            auth_targets = [
+                os.getenv('AUTHORITY_API_URL', 'https://nagardrishti-auth.onrender.com'),
+                'http://localhost:8000'
+            ]
+            for target_base in auth_targets:
+                if target_base:
+                    try:
+                        req = urllib.request.Request(
+                            f"{target_base.rstrip('/')}/api/complaints",
+                            data=auth_payload,
+                            headers={'Content-Type': 'application/json'},
+                            method='POST'
+                        )
+                        urllib.request.urlopen(req, timeout=2.5)
+                        logger.info(f'Complaint {report_id} automatically synced to authority portal at {target_base}')
+                        break
+                    except Exception:
+                        pass
+        except Exception as e:
+            logger.debug(f'Authority auto-sync skipped: {e}')
+
         # Try Supabase insert
         client = self._get_client()
         if client:
