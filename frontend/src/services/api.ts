@@ -1,9 +1,12 @@
 import type {
+  CitizenImpactSummary,
+  CitizenNotification,
   CivicDetectionResult,
   Complaint,
   ComplaintCreate,
   ComplaintPublicSummary,
   ComplaintStatus,
+  ComplaintStatusHistoryItem,
   DashboardStatistics,
   Department,
   HeatmapPoint
@@ -251,4 +254,55 @@ export async function getDepartments(): Promise<Department[]> {
     throw new Error('Failed to fetch departments.');
   }
   return res.json();
+}
+
+export async function getComplaintHistory(id: string): Promise<ComplaintStatusHistoryItem[]> {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_BASE}/complaints/${id}/history`, { headers });
+  if (!res.ok) {
+    throw await parseErrorResponse(res, 'Failed to retrieve complaint history.');
+  }
+  return res.json();
+}
+
+export async function getCitizenImpact(): Promise<CitizenImpactSummary> {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_BASE}/complaints/my-impact`, { headers });
+  if (!res.ok) {
+    throw await parseErrorResponse(res, 'Failed to load civic impact summary.');
+  }
+  return res.json();
+}
+
+export async function getNotifications(limit: number = 50): Promise<CitizenNotification[]> {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_BASE}/notifications?limit=${limit}`, { headers });
+  if (!res.ok) {
+    throw await parseErrorResponse(res, 'Failed to fetch notifications.');
+  }
+  return res.json();
+}
+
+export async function markNotificationAsRead(id: string): Promise<void> {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_BASE}/notifications/${id}/read`, {
+    method: 'PATCH',
+    headers,
+  });
+  if (!res.ok) {
+    throw await parseErrorResponse(res, 'Failed to update notification.');
+  }
+}
+
+export async function markAllNotificationsAsRead(): Promise<number> {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_BASE}/notifications/mark-all-read`, {
+    method: 'POST',
+    headers,
+  });
+  if (!res.ok) {
+    throw await parseErrorResponse(res, 'Failed to mark all notifications read.');
+  }
+  const data = await res.json();
+  return data.marked_count || 0;
 }

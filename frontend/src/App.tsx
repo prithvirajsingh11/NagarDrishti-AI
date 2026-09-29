@@ -93,9 +93,12 @@ export function App() {
     }
   }, [isLoggedIn, loading, currentView, authReturnTo, previousView]);
 
-  const navigateTo = (view: NavView, mode?: AuthMode) => {
+  const navigateTo = (view: NavView, mode?: AuthMode, reportId?: string) => {
     if (mode) {
       setAuthMode(mode);
+    }
+    if (reportId) {
+      setSelectedComplaintId(reportId);
     }
 
     // Intercept protected views if citizen is not authenticated

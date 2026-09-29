@@ -63,6 +63,38 @@ export interface Complaint {
   citizen_reopened?: boolean;
   citizen_reopened_at?: string | null;
   reopen_reason?: string | null;
+  status_history?: ComplaintStatusHistoryItem[];
+}
+
+export interface ComplaintStatusHistoryItem {
+  id: string;
+  complaint_id: string;
+  previous_status?: string | null;
+  new_status: string;
+  changed_by_role: string;
+  note?: string | null;
+  created_at: string;
+}
+
+export interface CitizenNotification {
+  id: string;
+  citizen_id: string;
+  complaint_id: string;
+  report_id: string;
+  title: string;
+  message: string;
+  event_type: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface CitizenImpactSummary {
+  total_submitted: number;
+  total_reports: number;
+  resolved_count: number;
+  in_progress_count: number;
+  reopened_count: number;
+  reported_count: number;
 }
 
 export interface Department {

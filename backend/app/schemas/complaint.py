@@ -37,6 +37,41 @@ class ComplaintPublicSummary(BaseModel):
     status: str
     created_at: datetime
 
+class ComplaintStatusHistoryItem(BaseModel):
+    id: str
+    complaint_id: str
+    previous_status: Optional[str] = None
+    new_status: str
+    changed_by_role: str = "system"
+    note: Optional[str] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+class CitizenNotification(BaseModel):
+    id: str
+    citizen_id: str
+    complaint_id: str
+    report_id: str
+    title: str
+    message: str
+    event_type: str
+    is_read: bool = False
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+class CitizenImpactSummary(BaseModel):
+    total_submitted: int
+    total_reports: int = 0
+    resolved_count: int
+    in_progress_count: int
+    reopened_count: int
+    reported_count: int = 0
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ComplaintResponse(BaseModel):
     id: str
     report_id: str
@@ -62,6 +97,7 @@ class ComplaintResponse(BaseModel):
     citizen_reopened: Optional[bool] = False
     citizen_reopened_at: Optional[datetime] = None
     reopen_reason: Optional[str] = None
+    status_history: List[ComplaintStatusHistoryItem] = []
 
     model_config = ConfigDict(from_attributes=True)
 

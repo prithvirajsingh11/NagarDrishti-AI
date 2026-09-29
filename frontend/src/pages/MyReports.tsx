@@ -1,19 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import {
   AlertTriangle,
-  Calendar,
   Check,
   CheckCircle2,
   ChevronRight,
   Circle,
+  Clock,
   Layers,
   MapPin,
   RotateCcw,
   Search
 } from 'lucide-react';
-import type { Complaint, ComplaintPublicSummary } from '../types/complaint';
+import type {
+  Complaint,
+  ComplaintPublicSummary,
+  ComplaintStatus,
+  ComplaintStatusHistoryItem
+} from '../types/complaint';
 import {
   confirmComplaintResolution,
+  getComplaintHistory,
   getComplaints,
   getPublicComplaintSummary,
   reopenComplaint
@@ -29,6 +35,8 @@ interface MyReportsProps {
   selectedComplaintId?: string | null;
 }
 
+type StatusFilterType = 'ALL' | 'REPORTED' | 'IN_PROGRESS' | 'RESOLVED' | 'REOPENED';
+
 export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selectedComplaintId }) => {
   const { t } = useLanguage();
   const { token } = useAuth();
@@ -36,16 +44,21 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilterType>('ALL');
   const [activeComplaint, setActiveComplaint] = useState<Complaint | null>(null);
 
-  // Phase 5 Action State
+  // Phase 6 Authentic Status History
+  const [historyItems, setHistoryItems] = useState<ComplaintStatusHistoryItem[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  // Citizen Verification Action State
   const [confirming, setConfirming] = useState(false);
   const [showReopenForm, setShowReopenForm] = useState(false);
   const [reopenReason, setReopenReason] = useState('');
   const [reopening, setReopening] = useState(false);
   const [actionFeedback, setActionFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  // Phase 5 Duplicate Safe Summary State
+  // Duplicate Safe Summary State
   const [duplicateSummary, setDuplicateSummary] = useState<ComplaintPublicSummary | null>(null);
   const [loadingDuplicateSummary, setLoadingDuplicateSummary] = useState(false);
 
@@ -70,12 +83,28 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
       .finally(() => setLoading(false));
   }, [selectedComplaintId, token]);
 
-  // Fetch safe public summary when active complaint has duplicate_of
+  // Load genuine audit trail whenever active complaint changes
   useEffect(() => {
     setShowReopenForm(false);
     setReopenReason('');
     setActionFeedback(null);
     setDuplicateSummary(null);
+
+    if (!activeComplaint) {
+      setHistoryItems([]);
+      return;
+    }
+
+    if (activeComplaint.status_history && activeComplaint.status_history.length > 0) {
+      setHistoryItems(activeComplaint.status_history);
+    } else {
+      setLoadingHistory(true);
+      const targetId = activeComplaint.id || activeComplaint.report_id;
+      getComplaintHistory(targetId)
+        .then((items) => setHistoryItems(items))
+        .catch(() => setHistoryItems([]))
+        .finally(() => setLoadingHistory(false));
+    }
 
     if (activeComplaint?.duplicate_of) {
       setLoadingDuplicateSummary(true);
@@ -86,7 +115,76 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
     }
   }, [activeComplaint?.id, activeComplaint?.report_id]);
 
+  // Response time calculation based on factual timestamps
+  const getFactualResponseTime = (c?: Complaint | null) => {
+    if (!c || !c.created_at) return '';
+    const now = new Date();
+    const created = new Date(c.created_at);
+    if (isNaN(created.getTime())) return '';
+
+    const diffMs = now.getTime() - created.getTime();
+    const diffHours = Math.max(0, diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (c.status === 'RESOLVED' && c.resolved_at) {
+      const resolved = new Date(c.resolved_at);
+      if (!isNaN(resolved.getTime())) {
+        const resHours = Math.max(1, Math.round((resolved.getTime() - created.getTime()) / (1000 * 60 * 60)));
+        if (resHours < 24) {
+          return `Resolved in ${resHours}h`;
+        }
+        const resDays = Math.round(resHours / 24);
+        return `Resolved in ${resDays} ${resDays === 1 ? 'day' : 'days'}`;
+      }
+      return 'Resolved';
+    }
+
+    if (c.status === 'REOPENED' || c.citizen_reopened) {
+      if (c.citizen_reopened_at) {
+        const reo = new Date(c.citizen_reopened_at);
+        const reoHours = Math.max(1, Math.round((now.getTime() - reo.getTime()) / (1000 * 60 * 60)));
+        if (reoHours < 24) {
+          return `Reopened ${reoHours}h ago`;
+        }
+        const reoDays = Math.round(reoHours / 24);
+        return `Reopened ${reoDays}d ago`;
+      }
+      return 'Reopened for review';
+    }
+
+    if (c.status === 'IN_PROGRESS' || c.status === 'ASSIGNED') {
+      if (diffHours < 24) {
+        return `In progress for ${Math.max(1, Math.round(diffHours))}h`;
+      }
+      return `In progress for ${diffDays} ${diffDays === 1 ? 'day' : 'days'}`;
+    }
+
+    // Default REPORTED
+    if (diffHours < 1) {
+      return 'Reported just now';
+    }
+    if (diffHours < 24) {
+      return `Reported ${Math.round(diffHours)}h ago`;
+    }
+    return `Reported ${diffDays} ${diffDays === 1 ? 'day' : 'days'} ago`;
+  };
+
+  const filterCounts = {
+    ALL: complaints.length,
+    REPORTED: complaints.filter((c) => c.status === 'REPORTED').length,
+    IN_PROGRESS: complaints.filter((c) => c.status === 'ASSIGNED' || c.status === 'IN_PROGRESS').length,
+    RESOLVED: complaints.filter((c) => c.status === 'RESOLVED' && !c.citizen_reopened).length,
+    REOPENED: complaints.filter((c) => c.status === 'REOPENED' || c.citizen_reopened).length,
+  };
+
   const filteredComplaints = complaints.filter((c) => {
+    // 1. Status Filter Tab
+    if (statusFilter === 'REPORTED' && c.status !== 'REPORTED') return false;
+    if (statusFilter === 'IN_PROGRESS' && !(c.status === 'ASSIGNED' || c.status === 'IN_PROGRESS')) return false;
+    if (statusFilter === 'RESOLVED' && (c.status !== 'RESOLVED' || c.citizen_reopened)) return false;
+    if (statusFilter === 'REOPENED' && !(c.status === 'REOPENED' || c.citizen_reopened)) return false;
+
+    // 2. Search query filter
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -270,16 +368,55 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
         </button>
       </div>
 
-      {/* Search Filter */}
-      <div className="relative">
-        <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder={t('myreports.search_placeholder')}
-          className="w-full pl-9 pr-3.5 py-2 bg-white/80 border border-slate-200/90 rounded-lg text-xs text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:border-slate-400"
-        />
+      {/* Search & Status Filter Section */}
+      <div className="space-y-3 font-sans">
+        <div className="relative">
+          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by Report ID, Category, Location, or Department..."
+            className="w-full pl-9 pr-3.5 py-2 bg-white/80 border border-slate-200/90 rounded-lg text-xs text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:border-slate-400 shadow-2xs"
+          />
+        </div>
+
+        {/* Status Filter Tabs */}
+        <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100/90 rounded-xl border border-slate-200/70 text-xs">
+          {(
+            [
+              { key: 'ALL', label: 'All' },
+              { key: 'REPORTED', label: 'Reported' },
+              { key: 'IN_PROGRESS', label: 'In Progress' },
+              { key: 'RESOLVED', label: 'Resolved' },
+              { key: 'REOPENED', label: 'Reopened' },
+            ] as const
+          ).map((tab) => {
+            const active = statusFilter === tab.key;
+            const count = filterCounts[tab.key];
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setStatusFilter(tab.key)}
+                className={`px-3 py-1.5 rounded-lg font-medium text-xs transition-all flex items-center gap-1.5 cursor-pointer select-none ${
+                  active
+                    ? 'bg-white text-slate-900 shadow-2xs font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                }`}
+              >
+                <span>{tab.label}</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                    active ? 'bg-slate-900 text-white' : 'bg-slate-200/80 text-slate-600'
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {errorMessage ? (
@@ -355,14 +492,10 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                     <span className="truncate">{c.location_name}</span>
                   </div>
 
-                  <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-100">
-                    <span className="flex items-center gap-1">
-                      <Calendar size={11} />
-                      {new Date(c.created_at).toLocaleDateString('en-IN', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric'
-                      })}
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-100">
+                    <span className="flex items-center gap-1 font-medium text-[10.5px] text-slate-600 bg-slate-100/90 px-2 py-0.5 rounded border border-slate-200/60 font-mono">
+                      <Clock size={11} className="text-slate-400" />
+                      {getFactualResponseTime(c)}
                     </span>
                     <button
                       type="button"
@@ -415,89 +548,164 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                 </div>
               )}
 
-              {/* 1. Government-Service Lifecycle Tracker */}
-              <div className="bg-slate-50/80 rounded-xl p-4 border border-slate-200/80 space-y-3">
+              {/* 1. Data-Driven Lifecycle Timeline */}
+              <div className="bg-slate-50/80 rounded-xl p-4 border border-slate-200/80 space-y-3 font-sans">
                 <div className="flex items-center justify-between text-xs font-bold text-slate-800 uppercase tracking-wider">
-                  <span>Complaint Tracking Timeline</span>
-                  <span className="text-[10px] text-slate-400 font-normal">Audit Trail</span>
+                  <span>Complaint Lifecycle Timeline</span>
+                  <span className="text-[10px] text-slate-400 font-normal font-mono">
+                    {historyItems.length > 0 ? `${historyItems.length} Real Lifecycle Events` : 'Audit Trail'}
+                  </span>
                 </div>
 
                 <div className="space-y-3.5 pt-1">
-                  {getLifecycleStages(activeComplaint).map((stage, idx, arr) => {
-                    const isLast = idx === arr.length - 1;
-                    return (
-                      <div key={idx} className="relative flex items-start gap-3">
-                        {/* Connecting vertical line */}
-                        {!isLast && (
-                          <div
-                            className={`absolute left-2.5 top-6 bottom-0 w-0.5 -ml-[1px] ${
-                              stage.status === 'completed' ? 'bg-slate-700' : 'bg-slate-200'
-                            }`}
-                          />
-                        )}
+                  {loadingHistory ? (
+                    <div className="text-center py-4 text-xs text-slate-500">
+                      Loading authentic audit trail...
+                    </div>
+                  ) : historyItems.length > 0 ? (
+                    historyItems.map((hist, idx) => {
+                      const isLast = idx === historyItems.length - 1;
+                      const roleLabel =
+                        hist.changed_by_role === 'authority'
+                          ? 'Municipal Department'
+                          : hist.changed_by_role === 'citizen'
+                          ? 'Citizen'
+                          : 'System AI';
 
-                        {/* Node Icon */}
-                        <div className="relative z-10 shrink-0 mt-0.5">
-                          {stage.status === 'completed' ? (
-                            <div className="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-xs">
-                              <Check size={11} strokeWidth={3} />
-                            </div>
-                          ) : stage.status === 'current' ? (
-                            <div className="w-5 h-5 rounded-full bg-white border-2 border-slate-900 flex items-center justify-center">
-                              <div className="w-2 h-2 rounded-full bg-slate-900 animate-pulse" />
-                            </div>
-                          ) : (
-                            <div className="w-5 h-5 rounded-full bg-white border border-slate-300 flex items-center justify-center">
-                              <Circle size={8} className="text-slate-300" />
-                            </div>
+                      const isResolvedEvent = hist.new_status === 'RESOLVED';
+                      const isReopenedEvent = hist.new_status === 'REOPENED';
+
+                      return (
+                        <div key={hist.id || idx} className="relative flex items-start gap-3">
+                          {!isLast && (
+                            <div className="absolute left-2.5 top-6 bottom-0 w-0.5 -ml-[1px] bg-slate-300" />
                           )}
-                        </div>
 
-                        {/* Content */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-baseline justify-between gap-2">
-                            <span
-                              className={`text-xs font-semibold ${
+                          {/* Node Icon */}
+                          <div className="relative z-10 shrink-0 mt-0.5">
+                            {isResolvedEvent ? (
+                              <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                                <Check size={11} strokeWidth={3} />
+                              </div>
+                            ) : isReopenedEvent ? (
+                              <div className="w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-xs">
+                                <RotateCcw size={10} strokeWidth={2.5} />
+                              </div>
+                            ) : isLast ? (
+                              <div className="w-5 h-5 rounded-full bg-white border-2 border-slate-900 flex items-center justify-center">
+                                <div className="w-2 h-2 rounded-full bg-slate-900 animate-pulse" />
+                              </div>
+                            ) : (
+                              <div className="w-5 h-5 rounded-full bg-slate-800 text-white flex items-center justify-center shadow-xs">
+                                <Check size={10} strokeWidth={2.5} />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Content */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-baseline justify-between gap-2">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <StatusBadge status={hist.new_status as ComplaintStatus} />
+                                <span className="text-[10px] text-slate-500 font-medium">
+                                  by {roleLabel}
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-slate-400 font-mono shrink-0">
+                                {formatDateTime(hist.created_at)}
+                              </span>
+                            </div>
+
+                            {hist.note && (
+                              <p className="text-[11.5px] mt-1 text-slate-700 leading-snug">
+                                {hist.note}
+                              </p>
+                            )}
+
+                            {isResolvedEvent && activeComplaint.resolution_image_url && (
+                              <div className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                                <CheckCircle2 size={11} />
+                                <span>Resolution evidence photograph attached</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    getLifecycleStages(activeComplaint).map((stage, idx, arr) => {
+                      const isLast = idx === arr.length - 1;
+                      return (
+                        <div key={idx} className="relative flex items-start gap-3">
+                          {!isLast && (
+                            <div
+                              className={`absolute left-2.5 top-6 bottom-0 w-0.5 -ml-[1px] ${
+                                stage.status === 'completed' ? 'bg-slate-700' : 'bg-slate-200'
+                              }`}
+                            />
+                          )}
+
+                          <div className="relative z-10 shrink-0 mt-0.5">
+                            {stage.status === 'completed' ? (
+                              <div className="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-xs">
+                                <Check size={11} strokeWidth={3} />
+                              </div>
+                            ) : stage.status === 'current' ? (
+                              <div className="w-5 h-5 rounded-full bg-white border-2 border-slate-900 flex items-center justify-center">
+                                <div className="w-2 h-2 rounded-full bg-slate-900 animate-pulse" />
+                              </div>
+                            ) : (
+                              <div className="w-5 h-5 rounded-full bg-white border border-slate-300 flex items-center justify-center">
+                                <Circle size={8} className="text-slate-300" />
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-baseline justify-between gap-2">
+                              <span
+                                className={`text-xs font-semibold ${
+                                  stage.status === 'completed'
+                                    ? 'text-slate-900'
+                                    : stage.status === 'current'
+                                    ? 'text-slate-950 font-bold'
+                                    : 'text-slate-400'
+                                }`}
+                              >
+                                {stage.title}
+                              </span>
+                              {stage.status === 'current' && (
+                                <span className="text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded uppercase">
+                                  Current
+                                </span>
+                              )}
+                            </div>
+                            <p
+                              className={`text-[11px] mt-0.5 leading-snug ${
                                 stage.status === 'completed'
-                                  ? 'text-slate-900'
+                                  ? 'text-slate-600'
                                   : stage.status === 'current'
-                                  ? 'text-slate-950 font-bold'
+                                  ? 'text-slate-700'
                                   : 'text-slate-400'
                               }`}
                             >
-                              {stage.title}
-                            </span>
-                            {stage.status === 'current' && (
-                              <span className="text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded uppercase">
-                                Current
-                              </span>
+                              {stage.subtitle}
+                            </p>
+                            {stage.note && (
+                              <p className="text-[11px] mt-1 text-slate-800 bg-white border border-slate-200/90 rounded p-1.5 font-mono">
+                                {stage.note}
+                              </p>
                             )}
                           </div>
-                          <p
-                            className={`text-[11px] mt-0.5 leading-snug ${
-                              stage.status === 'completed'
-                                ? 'text-slate-600'
-                                : stage.status === 'current'
-                                ? 'text-slate-700'
-                                : 'text-slate-400'
-                            }`}
-                          >
-                            {stage.subtitle}
-                          </p>
-                          {stage.note && (
-                            <p className="text-[11px] mt-1 text-slate-800 bg-white border border-slate-200/90 rounded p-1.5 font-mono">
-                              {stage.note}
-                            </p>
-                          )}
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  )}
                 </div>
               </div>
 
               {/* 2. Status Details Grid */}
-              <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-200/70 space-y-3">
+              <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-200/70 space-y-3 font-sans">
                 <div className="text-xs font-bold text-slate-800 uppercase tracking-wider">
                   Status Details
                 </div>
@@ -530,8 +738,20 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                     <span className="font-medium text-slate-800 block mt-0.5">{activeComplaint.department}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">Created Date</span>
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">Response Time</span>
+                    <span className="font-semibold text-slate-800 block mt-0.5 font-mono">
+                      {getFactualResponseTime(activeComplaint) || 'Under review'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">Submission Date</span>
                     <span className="text-slate-700 block mt-0.5">{formatDateTime(activeComplaint.created_at)}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">Last Updated</span>
+                    <span className="text-slate-700 block mt-0.5">
+                      {formatDateTime(activeComplaint.updated_at || activeComplaint.created_at)}
+                    </span>
                   </div>
                   <div className="col-span-2">
                     <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">Location</span>
@@ -664,13 +884,15 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
               {activeComplaint.status === 'RESOLVED' &&
                 !activeComplaint.citizen_resolution_confirmed &&
                 !activeComplaint.citizen_reopened && (
-                  <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-4 space-y-3">
+                  <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-4 space-y-3 font-sans">
                     <div className="flex items-start gap-2.5">
                       <AlertTriangle size={18} className="text-amber-700 shrink-0 mt-0.5" />
                       <div className="space-y-0.5">
-                        <h4 className="text-xs font-bold text-amber-950">Has this issue been fixed?</h4>
+                        <h4 className="text-xs font-bold text-amber-950">
+                          Authority marked this issue as resolved. Please verify whether the issue has actually been fixed.
+                        </h4>
                         <p className="text-[11px] text-amber-900 leading-snug">
-                          The municipal department has marked this civic issue as resolved. Please verify if the repairs have addressed the issue.
+                          Your verification directly impacts civic accountability. Confirm if field repairs are satisfactory or request reopening if the problem persists.
                         </p>
                       </div>
                     </div>
@@ -678,49 +900,55 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                     {!showReopenForm ? (
                       <div className="flex flex-wrap items-center gap-2 pt-1">
                         <button
+                          type="button"
                           onClick={handleConfirmResolution}
                           disabled={confirming}
                           className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs disabled:opacity-50"
                         >
                           <Check size={14} />
-                          {confirming ? 'Confirming...' : 'Yes, Issue Resolved'}
+                          {confirming ? 'Confirming...' : 'Confirm Resolution'}
                         </button>
                         <button
+                          type="button"
                           onClick={() => setShowReopenForm(true)}
+                          disabled={confirming}
                           className="px-4 py-2 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 font-medium text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
                         >
                           <RotateCcw size={14} />
-                          No, Issue Still Exists
+                          Issue Still Exists
                         </button>
                       </div>
                     ) : (
                       <div className="space-y-2.5 pt-2 border-t border-amber-200/80">
                         <div className="text-[11px] font-semibold text-amber-950">
-                          The issue is still present. We'll notify the responsible authority.
+                          The issue is still present. We will notify the responsible authority.
                         </div>
                         <div>
                           <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                            Tell us what is still wrong (optional):
+                            Describe what is still wrong (reason for reopening):
                           </label>
                           <textarea
                             value={reopenReason}
                             onChange={(e) => setReopenReason(e.target.value)}
-                            placeholder="e.g. Patch is already cracking, debris remains, light still not turning on..."
+                            placeholder="e.g. Patch is broken, debris remains on roadway, light is still non-functional..."
                             rows={2}
                             className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:border-slate-500"
                           />
                         </div>
                         <div className="flex items-center gap-2">
                           <button
+                            type="button"
                             onClick={handleReopenComplaint}
                             disabled={reopening}
-                            className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                            className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50 shadow-xs"
                           >
                             <RotateCcw size={14} />
-                            {reopening ? 'Submitting...' : 'Submit Reopen Request'}
+                            {reopening ? 'Reopening...' : 'Submit Reopen Request'}
                           </button>
                           <button
+                            type="button"
                             onClick={() => setShowReopenForm(false)}
+                            disabled={reopening}
                             className="px-3 py-2 text-slate-600 hover:text-slate-800 text-xs font-medium cursor-pointer"
                           >
                             Cancel
@@ -733,32 +961,30 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
 
               {/* Citizen Verified State Notice */}
               {activeComplaint.citizen_resolution_confirmed && (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 flex items-start gap-2.5 text-xs text-emerald-900">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 flex items-start gap-2.5 text-xs text-emerald-900 font-sans">
                   <CheckCircle2 size={17} className="text-emerald-600 shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-bold block">
-                      Thank you for confirming. This complaint has been verified as resolved.
+                    <span className="font-bold block text-emerald-950">
+                      Resolution confirmed
                     </span>
                     <span className="text-[11px] text-emerald-700">
-                      Citizen confirmation recorded on {formatDateTime(activeComplaint.citizen_resolution_confirmed_at || activeComplaint.updated_at)}.
+                      Citizen confirmation recorded on {formatDateTime(activeComplaint.citizen_resolution_confirmed_at || activeComplaint.updated_at)}. This complaint has reached final verified resolution.
                     </span>
                   </div>
                 </div>
               )}
 
               {/* Reopened State Notice */}
-              {activeComplaint.status === 'REOPENED' && (
-                <div className="bg-rose-50 border border-rose-200 rounded-xl p-3.5 flex items-start gap-2.5 text-xs text-rose-950">
+              {(activeComplaint.status === 'REOPENED' || activeComplaint.citizen_reopened) && (
+                <div className="bg-rose-50 border border-rose-200 rounded-xl p-3.5 flex items-start gap-2.5 text-xs text-rose-950 font-sans">
                   <RotateCcw size={17} className="text-rose-600 shrink-0 mt-0.5" />
                   <div className="space-y-0.5">
-                    <span className="font-bold block">Issue Reopened by Citizen</span>
-                    <p className="text-[11px] text-rose-900">
-                      {activeComplaint.reopen_reason
-                        ? `Citizen note: "${activeComplaint.reopen_reason}"`
-                        : 'Citizen reported that civic issue is still present.'}
+                    <span className="font-bold block text-rose-950">Complaint reopened</span>
+                    <p className="text-[11.5px] text-rose-900 leading-snug">
+                      Citizen submitted reason: <span className="font-semibold italic">"{activeComplaint.reopen_reason || 'Civic issue still exists at the location.'}"</span>
                     </p>
-                    <span className="text-[10px] text-rose-700 block font-mono">
-                      Reopened on {formatDateTime(activeComplaint.citizen_reopened_at || activeComplaint.updated_at)}. Responsible department notified.
+                    <span className="text-[10px] text-rose-700 block font-mono mt-1">
+                      Reopened on {formatDateTime(activeComplaint.citizen_reopened_at || activeComplaint.updated_at)}. Assigned department has been notified to re-inspect.
                     </span>
                   </div>
                 </div>

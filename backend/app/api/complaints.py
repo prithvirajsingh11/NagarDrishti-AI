@@ -7,11 +7,13 @@ from app.core.auth import get_current_user, require_authority, security, TEST_TO
 from app.core.config import settings
 from app.core.database import db
 from app.schemas.complaint import (
+    CitizenImpactSummary,
     CitizenReopenRequest,
     ComplaintCreate,
     ComplaintPublicSummary,
     ComplaintResponse,
     ComplaintStatus,
+    ComplaintStatusHistoryItem,
     ComplaintUpdateStatus
 )
 from app.services.storage_service import storage_service
@@ -205,6 +207,18 @@ async def list_complaints(
         raise HTTPException(status_code=500, detail="Could not retrieve complaints.")
 
 
+@router.get("/my-impact", response_model=CitizenImpactSummary)
+async def get_my_civic_impact(user: Dict = Depends(get_current_user)):
+    """
+    Aggregates authentic civic impact statistics strictly for the authenticated citizen.
+    Never fabricates statistics.
+    """
+    citizen_id = user["id"]
+    impact = await db.get_citizen_impact(citizen_id)
+    impact["total_reports"] = impact["total_submitted"]
+    return impact
+
+
 @router.get("/{id}", response_model=ComplaintResponse)
 async def get_complaint(
     id: str,
@@ -229,6 +243,31 @@ async def get_complaint(
         raise HTTPException(status_code=404, detail="Complaint report not found.")
 
     return complaint
+
+
+@router.get("/{id}/history", response_model=List[ComplaintStatusHistoryItem])
+async def get_complaint_history(
+    id: str,
+    user: Dict = Depends(get_current_user)
+):
+    """
+    Retrieves the authentic chronological status history timeline for a complaint.
+    Enforces that citizens can only access history for their own complaints.
+    """
+    is_authority = user.get("role") == "authority"
+    citizen_id = user["id"] if not is_authority else None
+
+    complaint = await db.get_complaint_by_id(id, citizen_id=citizen_id, is_authority=is_authority)
+    if not complaint:
+        existing = await db.get_complaint_by_id(id, is_authority=True)
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Forbidden: You are not authorized to view this complaint's history."
+            )
+        raise HTTPException(status_code=404, detail="Complaint report not found.")
+
+    return complaint.get("status_history", [])
 
 
 @router.patch("/{id}/status", response_model=ComplaintResponse)

@@ -111,6 +111,7 @@ Run the SQL migrations in your Supabase SQL editor (`>_`):
 2. `supabase/migrations/002_secure_storage.sql` (private bucket storage policies)
 3. `supabase/migrations/003_auth_and_ownership.sql` (profiles table, auto-profile trigger, citizen complaint ownership, RLS)
 4. `supabase/migrations/004_phase5_resolution_and_tracking.sql` (resolution tracking, citizen confirmation & reopen, auditable status history)
+5. `supabase/migrations/005_phase6_citizen_experience.sql` (citizen real-event notifications table, audit indexes & RLS)
 
 #### B. Supabase Dashboard Authentication Setup (Hackathon Environment)
 In your Supabase Project Dashboard (`Authentication` → `Providers`):
