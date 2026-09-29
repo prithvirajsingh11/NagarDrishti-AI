@@ -33,16 +33,12 @@ class Database:
         self._report_seq = 1
         self._load_from_disk()
     def _get_storage_paths(self) -> List[Path]:
-        paths = []
         p1 = Path(__file__).resolve().parent.parent.parent / "data" / "complaints_db.json"
-        p2 = Path("/Users/tejasvnigam/Desktop/nagardristhi_auth/backend/data/complaints_db.json")
-        for p in [p1, p2]:
-            try:
-                p.parent.mkdir(parents=True, exist_ok=True)
-                paths.append(p)
-            except Exception:
-                pass
-        return paths
+        try:
+            p1.parent.mkdir(parents=True, exist_ok=True)
+            return [p1]
+        except Exception:
+            return []
 
     def _load_from_disk(self):
         for p in self._get_storage_paths():
