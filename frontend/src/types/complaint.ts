@@ -2,7 +2,7 @@ export type ProblemType = 'pothole' | 'garbage' | 'streetlight' | 'drain' | 'oth
 
 export type SeverityLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
-export type ComplaintStatus = 'REPORTED' | 'ASSIGNED' | 'IN_PROGRESS' | 'RESOLVED';
+export type ComplaintStatus = 'REPORTED' | 'ASSIGNED' | 'IN_PROGRESS' | 'RESOLVED' | 'REOPENED';
 
 export interface CivicDetectionResult {
   problem_type: ProblemType;
@@ -31,6 +31,14 @@ export interface ComplaintCreate {
   duplicate_of?: string | null;
 }
 
+export interface ComplaintPublicSummary {
+  report_id: string;
+  problem_type: ProblemType;
+  location_name: string;
+  status: string;
+  created_at: string;
+}
+
 export interface Complaint {
   id: string;
   report_id: string;
@@ -48,6 +56,13 @@ export interface Complaint {
   duplicate_of?: string | null;
   created_at: string;
   updated_at: string;
+  resolution_image_url?: string | null;
+  resolved_at?: string | null;
+  citizen_resolution_confirmed?: boolean | null;
+  citizen_resolution_confirmed_at?: string | null;
+  citizen_reopened?: boolean;
+  citizen_reopened_at?: string | null;
+  reopen_reason?: string | null;
 }
 
 export interface Department {

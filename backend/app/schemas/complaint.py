@@ -8,6 +8,7 @@ class ComplaintStatus(str, Enum):
     ASSIGNED = "ASSIGNED"
     IN_PROGRESS = "IN_PROGRESS"
     RESOLVED = "RESOLVED"
+    REOPENED = "REOPENED"
 
 class ComplaintCreate(BaseModel):
     problem_type: str = Field(..., description="pothole, garbage, streetlight, drain, other")
@@ -24,6 +25,17 @@ class ComplaintCreate(BaseModel):
 
 class ComplaintUpdateStatus(BaseModel):
     status: ComplaintStatus
+    resolution_image_url: Optional[str] = Field(None, description="Authority resolution image URL when marking RESOLVED")
+
+class CitizenReopenRequest(BaseModel):
+    reason: Optional[str] = Field(None, max_length=500, description="Optional citizen notes on why issue is not resolved")
+
+class ComplaintPublicSummary(BaseModel):
+    report_id: str
+    problem_type: str
+    location_name: str
+    status: str
+    created_at: datetime
 
 class ComplaintResponse(BaseModel):
     id: str
@@ -43,6 +55,13 @@ class ComplaintResponse(BaseModel):
     citizen_id: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+    resolution_image_url: Optional[str] = None
+    resolved_at: Optional[datetime] = None
+    citizen_resolution_confirmed: Optional[bool] = None
+    citizen_resolution_confirmed_at: Optional[datetime] = None
+    citizen_reopened: Optional[bool] = False
+    citizen_reopened_at: Optional[datetime] = None
+    reopen_reason: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

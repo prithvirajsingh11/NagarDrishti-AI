@@ -16,6 +16,8 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
         return 'bg-amber-50 text-amber-800 border-amber-300';
       case 'RESOLVED':
         return 'bg-emerald-50 text-emerald-800 border-emerald-300';
+      case 'REOPENED':
+        return 'bg-rose-50 text-rose-800 border-rose-300';
       default:
         return 'bg-slate-50 text-slate-700 border-slate-200';
     }
@@ -31,6 +33,8 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
         return 'In Progress';
       case 'RESOLVED':
         return 'Resolved';
+      case 'REOPENED':
+        return 'Reopened';
       default:
         return status;
     }

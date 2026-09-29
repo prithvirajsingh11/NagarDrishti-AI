@@ -7,7 +7,9 @@ from app.core.auth import get_current_user, require_authority, security, TEST_TO
 from app.core.config import settings
 from app.core.database import db
 from app.schemas.complaint import (
+    CitizenReopenRequest,
     ComplaintCreate,
+    ComplaintPublicSummary,
     ComplaintResponse,
     ComplaintStatus,
     ComplaintUpdateStatus
@@ -119,7 +121,7 @@ async def get_complaint_image(
     if user.get("role") != "authority":
         citizen_id = user.get("id")
         all_reports = await db.get_complaints(limit=500)
-        matching = [c for c in all_reports if filename in (c.get("image_url") or "")]
+        matching = [c for c in all_reports if filename in (c.get("image_url") or "") or filename in (c.get("resolution_image_url") or "")]
         if matching:
             # If complaint exists, citizen MUST own it
             owns = any(c.get("citizen_id") == citizen_id for c in matching)
@@ -239,7 +241,71 @@ async def update_complaint_status(
     Update complaint lifecycle status.
     Strictly authority-only. Citizens cannot update complaint status.
     """
-    updated = await db.update_complaint_status(id, update.status.value)
+    updated = await db.update_complaint_status(
+        id,
+        update.status.value,
+        resolution_image_url=update.resolution_image_url
+    )
     if not updated:
         raise HTTPException(status_code=404, detail="Complaint not found.")
     return updated
+
+
+@router.post("/{id}/confirm-resolution", response_model=ComplaintResponse)
+async def confirm_resolution(
+    id: str,
+    user: Dict = Depends(get_current_user)
+):
+    """
+    Citizen confirms that a resolved complaint is fixed.
+    Derives citizen identity strictly from authentication token.
+    Enforces ownership and status checks server-side.
+    """
+    citizen_id = user["id"]
+    try:
+        updated = await db.confirm_resolution(id, citizen_id=citizen_id)
+        if not updated:
+            raise HTTPException(status_code=404, detail="Complaint not found.")
+        return updated
+    except PermissionError as pe:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(pe))
+    except ValueError as ve:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
+
+
+@router.post("/{id}/reopen", response_model=ComplaintResponse)
+async def reopen_complaint(
+    id: str,
+    payload: CitizenReopenRequest = CitizenReopenRequest(),
+    user: Dict = Depends(get_current_user)
+):
+    """
+    Citizen reopens a complaint because the civic issue still exists.
+    Derives citizen identity strictly from authentication token.
+    Enforces ownership, preserves previous resolution history, and records reopen reason.
+    """
+    citizen_id = user["id"]
+    try:
+        updated = await db.reopen_complaint(id, citizen_id=citizen_id, reason=payload.reason)
+        if not updated:
+            raise HTTPException(status_code=404, detail="Complaint not found.")
+        return updated
+    except PermissionError as pe:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(pe))
+    except ValueError as ve:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
+
+
+@router.get("/{id}/public-summary", response_model=ComplaintPublicSummary)
+async def get_public_summary(
+    id: str,
+    user: Dict = Depends(get_current_user)
+):
+    """
+    Safe public summary of a complaint (used for duplicate report notice).
+    Strictly returns safe public fields with zero citizen personal info.
+    """
+    summary = await db.get_public_summary(id)
+    if not summary:
+        raise HTTPException(status_code=404, detail="Referenced complaint not found.")
+    return summary

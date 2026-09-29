@@ -2,6 +2,7 @@ import type {
   CivicDetectionResult,
   Complaint,
   ComplaintCreate,
+  ComplaintPublicSummary,
   ComplaintStatus,
   DashboardStatistics,
   Department,
@@ -181,6 +182,46 @@ export async function updateComplaintStatus(
 
   if (!res.ok) {
     throw await parseErrorResponse(res, 'Failed to update complaint status.');
+  }
+
+  return res.json();
+}
+
+export async function confirmComplaintResolution(id: string): Promise<Complaint> {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_BASE}/complaints/${id}/confirm-resolution`, {
+    method: 'POST',
+    headers,
+  });
+
+  if (!res.ok) {
+    throw await parseErrorResponse(res, 'Failed to confirm complaint resolution.');
+  }
+
+  return res.json();
+}
+
+export async function reopenComplaint(id: string, reason?: string): Promise<Complaint> {
+  const headers = await getJsonAuthHeaders();
+  const res = await fetch(`${API_BASE}/complaints/${id}/reopen`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ reason: reason || '' }),
+  });
+
+  if (!res.ok) {
+    throw await parseErrorResponse(res, 'Failed to submit reopen request.');
+  }
+
+  return res.json();
+}
+
+export async function getPublicComplaintSummary(idOrReportId: string): Promise<ComplaintPublicSummary> {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_BASE}/complaints/${idOrReportId}/public-summary`, { headers });
+
+  if (!res.ok) {
+    throw await parseErrorResponse(res, 'Failed to retrieve referenced report summary.');
   }
 
   return res.json();

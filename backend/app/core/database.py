@@ -144,6 +144,13 @@ class Database:
             "image_url": data.get("image_url", ""),
             "status": "REPORTED",
             "duplicate_of": duplicate_report_id or data.get("duplicate_of"),
+            "resolution_image_url": None,
+            "resolved_at": None,
+            "citizen_resolution_confirmed": None,
+            "citizen_resolution_confirmed_at": None,
+            "citizen_reopened": False,
+            "citizen_reopened_at": None,
+            "reopen_reason": None,
             "created_at": now,
             "updated_at": now
         }
@@ -184,20 +191,25 @@ class Database:
                 res = client.table("complaints").insert(complaint_record).execute()
                 if res.data:
                     logger.info(f"Complaint {report_id} persisted to Supabase.")
-                    return res.data[0]
+                    return {**complaint_record, **res.data[0]}
             except Exception as e:
-                # If remote table does not yet have citizen_id column, persist remaining fields
-                if "citizen_id" in str(e):
-                    try:
-                        record_compat = {k: v for k, v in complaint_record.items() if k != "citizen_id"}
-                        res = client.table("complaints").insert(record_compat).execute()
-                        if res.data:
-                            logger.info(f"Complaint {report_id} persisted to Supabase (compat mode).")
-                            merged = dict(res.data[0])
-                            merged["citizen_id"] = citizen_id
-                            return merged
-                    except Exception as inner_e:
-                        logger.warning(f"Supabase fallback insert failed ({inner_e}).")
+                # If remote table does not yet have Phase 5 or citizen_id columns, persist base fields
+                err_str = str(e)
+                base_keys = {
+                    "id", "report_id", "problem_type", "confidence", "severity",
+                    "evidence", "latitude", "longitude", "location_name", "department",
+                    "description", "image_url", "status", "duplicate_of", "created_at", "updated_at"
+                }
+                if "citizen_id" not in err_str:
+                    base_keys.add("citizen_id")
+                try:
+                    record_compat = {k: v for k, v in complaint_record.items() if k in base_keys}
+                    res = client.table("complaints").insert(record_compat).execute()
+                    if res.data:
+                        logger.info(f"Complaint {report_id} persisted to Supabase (compat mode).")
+                        return {**complaint_record, **res.data[0]}
+                except Exception as inner_e:
+                    logger.warning(f"Supabase fallback insert failed ({inner_e}).")
                 logger.warning(f"Failed to insert into Supabase ({e}). Persisting in local storage.")
 
         return complaint_record
@@ -236,15 +248,34 @@ class Database:
         for c in remote_data:
             key = c.get("report_id") or c.get("id")
             if key:
-                combined_map[key] = dict(c)
+                item = dict(c)
+                item.setdefault("resolution_image_url", None)
+                item.setdefault("resolved_at", None)
+                item.setdefault("citizen_resolution_confirmed", None)
+                item.setdefault("citizen_resolution_confirmed_at", None)
+                item.setdefault("citizen_reopened", False)
+                item.setdefault("citizen_reopened_at", None)
+                item.setdefault("reopen_reason", None)
+                combined_map[key] = item
         for c in self._memory_complaints:
             key = c.get("report_id") or c.get("id")
             if key:
                 if key in combined_map:
                     if not combined_map[key].get("citizen_id") and c.get("citizen_id"):
                         combined_map[key]["citizen_id"] = c.get("citizen_id")
+                    for attr in ["resolution_image_url", "resolved_at", "citizen_resolution_confirmed", "citizen_resolution_confirmed_at", "citizen_reopened", "citizen_reopened_at", "reopen_reason"]:
+                        if c.get(attr) is not None:
+                            combined_map[key][attr] = c.get(attr)
                 else:
-                    combined_map[key] = dict(c)
+                    item = dict(c)
+                    item.setdefault("resolution_image_url", None)
+                    item.setdefault("resolved_at", None)
+                    item.setdefault("citizen_resolution_confirmed", None)
+                    item.setdefault("citizen_resolution_confirmed_at", None)
+                    item.setdefault("citizen_reopened", False)
+                    item.setdefault("citizen_reopened_at", None)
+                    item.setdefault("reopen_reason", None)
+                    combined_map[key] = item
 
         filtered = list(combined_map.values())
         filtered.sort(key=lambda x: str(x.get("created_at", "")), reverse=True)
@@ -306,40 +337,220 @@ class Database:
 
         return found
 
-    async def update_complaint_status(self, id_or_report_id: str, new_status: str) -> Optional[Dict]:
+    async def update_complaint_status(
+        self,
+        id_or_report_id: str,
+        new_status: str,
+        resolution_image_url: Optional[str] = None
+    ) -> Optional[Dict]:
         """
         Updates complaint lifecycle status with authority validation.
-        Valid statuses: REPORTED, ASSIGNED, IN_PROGRESS, RESOLVED.
+        Valid statuses: REPORTED, ASSIGNED, IN_PROGRESS, RESOLVED, REOPENED.
         """
-        valid_statuses = {"REPORTED", "ASSIGNED", "IN_PROGRESS", "RESOLVED"}
+        valid_statuses = {"REPORTED", "ASSIGNED", "IN_PROGRESS", "RESOLVED", "REOPENED"}
         if new_status not in valid_statuses:
             raise ValueError(f"Invalid status '{new_status}'. Allowed: {valid_statuses}")
 
         now = datetime.now(timezone.utc).isoformat()
+        update_data = {
+            "status": new_status,
+            "updated_at": now
+        }
+        if new_status == "RESOLVED":
+            update_data["resolved_at"] = now
+            if resolution_image_url:
+                update_data["resolution_image_url"] = resolution_image_url
+
         client = self._get_client()
+        updated_remote = None
         if client:
             try:
                 table = client.table("complaints")
-                update_data = {
-                    "status": new_status,
-                    "updated_at": now
-                }
-                if self._is_uuid(id_or_report_id):
-                    res = table.update(update_data).eq("id", id_or_report_id).execute()
-                else:
-                    res = table.update(update_data).eq("report_id", id_or_report_id).execute()
-                if res.data:
-                    return res.data[0]
+                match_col = "id" if self._is_uuid(id_or_report_id) else "report_id"
+                try:
+                    res = table.update(update_data).eq(match_col, id_or_report_id).execute()
+                    if res.data:
+                        updated_remote = res.data[0]
+                except Exception as col_err:
+                    if "PGRST204" in str(col_err) or "column" in str(col_err).lower():
+                        res = table.update({"status": new_status, "updated_at": now}).eq(match_col, id_or_report_id).execute()
+                        if res.data:
+                            updated_remote = res.data[0]
+                    else:
+                        logger.warning(f"Supabase update error: {col_err}")
             except Exception as e:
                 logger.warning(f"Supabase update error: {e}")
 
         for c in self._memory_complaints:
             if c.get("id") == id_or_report_id or c.get("report_id") == id_or_report_id:
-                c["status"] = new_status
-                c["updated_at"] = now
+                c.update(update_data)
                 self._save_to_disk()
                 return c
+
+        if updated_remote:
+            merged = {**updated_remote, **update_data}
+            self._memory_complaints.insert(0, merged)
+            self._save_to_disk()
+            return merged
+
         return None
+
+    async def confirm_resolution(
+        self,
+        id_or_report_id: str,
+        citizen_id: str
+    ) -> Optional[Dict]:
+        """
+        Citizen confirms that the resolved complaint is indeed fixed.
+        Strictly enforces complaint ownership and status == RESOLVED.
+        """
+        complaint = await self.get_complaint_by_id(id_or_report_id, is_authority=True)
+        if not complaint:
+            return None
+        if complaint.get("citizen_id") != citizen_id:
+            raise PermissionError("Forbidden: You can only confirm resolution for your own complaints.")
+        if complaint.get("status") != "RESOLVED":
+            raise ValueError("Only resolved complaints can be confirmed as resolved.")
+
+        now = datetime.now(timezone.utc).isoformat()
+        update_data = {
+            "citizen_resolution_confirmed": True,
+            "citizen_resolution_confirmed_at": now,
+            "citizen_reopened": False,
+            "updated_at": now
+        }
+
+        client = self._get_client()
+        updated_remote = None
+        if client:
+            try:
+                table = client.table("complaints")
+                match_col = "id" if self._is_uuid(id_or_report_id) else "report_id"
+                try:
+                    res = table.update(update_data).eq(match_col, id_or_report_id).execute()
+                    if res.data:
+                        updated_remote = res.data[0]
+                except Exception as col_err:
+                    logger.warning(f"Supabase confirm update compat mode: {col_err}")
+                
+                try:
+                    cid = complaint.get("id")
+                    client.table("complaint_status_history").insert({
+                        "complaint_id": cid,
+                        "previous_status": "RESOLVED",
+                        "new_status": "RESOLVED",
+                        "changed_by": citizen_id,
+                        "changed_by_role": "citizen",
+                        "note": "Citizen confirmed resolution"
+                    }).execute()
+                except Exception:
+                    pass
+            except Exception as e:
+                logger.warning(f"Supabase confirm error: {e}")
+
+        for c in self._memory_complaints:
+            if c.get("id") == id_or_report_id or c.get("report_id") == id_or_report_id:
+                c.update(update_data)
+                self._save_to_disk()
+                return c
+
+        complaint.update(update_data)
+        if updated_remote:
+            complaint.update(updated_remote)
+        self._memory_complaints.insert(0, complaint)
+        self._save_to_disk()
+        return complaint
+
+    async def reopen_complaint(
+        self,
+        id_or_report_id: str,
+        citizen_id: str,
+        reason: Optional[str] = None
+    ) -> Optional[Dict]:
+        """
+        Citizen reopens a complaint because the civic issue still exists.
+        Preserves complete resolution history (resolution_image_url, resolved_at).
+        Strictly enforces complaint ownership and status == RESOLVED.
+        """
+        complaint = await self.get_complaint_by_id(id_or_report_id, is_authority=True)
+        if not complaint:
+            return None
+        if complaint.get("citizen_id") != citizen_id:
+            raise PermissionError("Forbidden: You can only reopen your own complaints.")
+        if complaint.get("status") != "RESOLVED":
+            raise ValueError("Only resolved complaints can be reopened.")
+
+        now = datetime.now(timezone.utc).isoformat()
+        update_data = {
+            "status": "REOPENED",
+            "citizen_reopened": True,
+            "citizen_reopened_at": now,
+            "reopen_reason": reason or "",
+            "citizen_resolution_confirmed": False,
+            "updated_at": now
+        }
+
+        client = self._get_client()
+        updated_remote = None
+        if client:
+            try:
+                table = client.table("complaints")
+                match_col = "id" if self._is_uuid(id_or_report_id) else "report_id"
+                try:
+                    res = table.update(update_data).eq(match_col, id_or_report_id).execute()
+                    if res.data:
+                        updated_remote = res.data[0]
+                except Exception as col_err:
+                    if "PGRST204" in str(col_err) or "column" in str(col_err).lower():
+                        res = table.update({"status": "REOPENED", "updated_at": now}).eq(match_col, id_or_report_id).execute()
+                        if res.data:
+                            updated_remote = res.data[0]
+                    else:
+                        logger.warning(f"Supabase reopen update compat mode: {col_err}")
+                
+                try:
+                    cid = complaint.get("id")
+                    client.table("complaint_status_history").insert({
+                        "complaint_id": cid,
+                        "previous_status": "RESOLVED",
+                        "new_status": "REOPENED",
+                        "changed_by": citizen_id,
+                        "changed_by_role": "citizen",
+                        "note": f"Reopened by citizen: {reason or 'Issue still present'}"
+                    }).execute()
+                except Exception:
+                    pass
+            except Exception as e:
+                logger.warning(f"Supabase reopen error: {e}")
+
+        for c in self._memory_complaints:
+            if c.get("id") == id_or_report_id or c.get("report_id") == id_or_report_id:
+                c.update(update_data)
+                self._save_to_disk()
+                return c
+
+        complaint.update(update_data)
+        if updated_remote:
+            complaint.update(updated_remote)
+        self._memory_complaints.insert(0, complaint)
+        self._save_to_disk()
+        return complaint
+
+    async def get_public_summary(self, id_or_report_id: str) -> Optional[Dict]:
+        """
+        Retrieves safe public summary of a complaint (e.g. for duplicate reference).
+        Strictly strips all personal citizen data, contact details, and private notes.
+        """
+        complaint = await self.get_complaint_by_id(id_or_report_id, is_authority=True)
+        if not complaint:
+            return None
+        return {
+            "report_id": complaint.get("report_id"),
+            "problem_type": complaint.get("problem_type"),
+            "location_name": complaint.get("location_name"),
+            "status": complaint.get("status"),
+            "created_at": complaint.get("created_at")
+        }
 
     def calculate_hotspots(self, complaints: List[Dict]) -> List[Dict]:
         """

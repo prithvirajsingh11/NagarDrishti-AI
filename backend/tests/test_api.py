@@ -5,6 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 
+from datetime import datetime, timedelta, timezone
 from app.main import app
 from app.schemas.ai import CivicDetectionResult, ProblemType, SeverityLevel
 from app.services.gemini_provider import GeminiVisionProvider
@@ -77,7 +78,7 @@ def test_duplicate_detector():
             "latitude": 28.6139,
             "longitude": 77.2090,
             "status": "REPORTED",
-            "created_at": "2026-09-26T12:00:00Z"
+            "created_at": (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat()
         }
     ]
 
