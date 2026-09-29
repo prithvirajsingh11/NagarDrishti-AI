@@ -100,6 +100,7 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [analyzingError, setAnalyzingError] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [showMapPicker, setShowMapPicker] = useState<boolean>(false);
 
   // Hidden file inputs for Camera and Gallery
@@ -242,6 +243,8 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
 
   // Trigger AI Analysis
   const handleStartAnalysis = async () => {
+    if (isAnalyzing) return;
+
     // If user clicked analyze without a photo, auto-load sample or prompt
     if (!selectedFile) {
       // Pick first demo image if none selected
@@ -271,10 +274,11 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
     }
   };
 
-  // Submit final complaint
+  // Submit final complaint with double-click prevention
   const handleSubmitComplaint = async () => {
-    if (!selectedFile || !aiResult) return;
+    if (isSubmitting || !selectedFile || !aiResult) return;
 
+    setIsSubmitting(true);
     setCurrentStep('submitting');
     try {
       // 1. Upload image to Supabase Storage
@@ -303,6 +307,8 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
       if (errMsg.toLowerCase().includes('session has expired') && onRequireAuth) {
         setTimeout(() => onRequireAuth(), 1200);
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -1058,10 +1064,20 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
                 <button
                   type="button"
                   onClick={handleSubmitComplaint}
-                  className="flex-1 py-2.5 bg-[#0B2545] hover:bg-[#07192f] text-white font-medium text-xs rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                  disabled={isSubmitting}
+                  className="flex-1 py-2.5 bg-[#0B2545] hover:bg-[#07192f] disabled:opacity-50 text-white font-medium text-xs rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
                 >
-                  <Check size={14} />
-                  <span>Submit Complaint</span>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>Submitting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check size={14} />
+                      <span>Submit Complaint</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -1114,7 +1130,15 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
               <div className="space-y-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => onSuccess(submittedComplaint)}
+                  onClick={() => {
+                    const c = submittedComplaint;
+                    setSelectedFile(null);
+                    setPreviewUrl(null);
+                    setAiResult(null);
+                    setSubmittedComplaint(null);
+                    setCurrentStep('capture');
+                    onSuccess(c);
+                  }}
                   className="w-full py-2.5 bg-[#0B2545] hover:bg-[#07192f] text-white font-medium text-xs rounded-xl transition-colors cursor-pointer shadow-xs"
                 >
                   Track in My Reports
@@ -1125,6 +1149,7 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
                     setSelectedFile(null);
                     setPreviewUrl(null);
                     setAiResult(null);
+                    setSubmittedComplaint(null);
                     setCurrentStep('capture');
                   }}
                   className="w-full py-2 bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs rounded-xl border border-slate-200 transition-colors cursor-pointer"

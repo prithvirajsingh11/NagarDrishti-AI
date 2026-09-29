@@ -11,7 +11,8 @@ import {
   MessageSquare,
   RotateCcw,
   Search,
-  Send
+  Send,
+  Share2
 } from 'lucide-react';
 import type {
   Complaint,
@@ -73,6 +74,7 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
   const [statusRequestMessage, setStatusRequestMessage] = useState('');
   const [submittingStatusRequest, setSubmittingStatusRequest] = useState(false);
   const [statusRequestFeedback, setStatusRequestFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [copiedShare, setCopiedShare] = useState<boolean>(false);
 
   useEffect(() => {
     setLoading(true);
@@ -249,6 +251,7 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
       const updated = await confirmComplaintResolution(targetId);
       setActiveComplaint(updated);
       setComplaints((prev) => prev.map((c) => (c.id === updated.id || c.report_id === updated.report_id ? updated : c)));
+      getComplaintHistory(targetId).then((items) => setHistoryItems(items)).catch(() => {});
       setActionFeedback({
         message: 'Thank you for confirming. This complaint has been verified as resolved.',
         type: 'success',
@@ -273,6 +276,7 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
       setActiveComplaint(updated);
       setComplaints((prev) => prev.map((c) => (c.id === updated.id || c.report_id === updated.report_id ? updated : c)));
       setShowReopenForm(false);
+      getComplaintHistory(targetId).then((items) => setHistoryItems(items)).catch(() => {});
       setActionFeedback({
         message: "The issue is still present. We'll notify the responsible authority.",
         type: 'success',
@@ -311,6 +315,30 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
     }
   };
 
+  const handleShareStatus = async () => {
+    if (!activeComplaint) return;
+    const shareUrl = `${window.location.origin}${window.location.pathname}#track?id=${encodeURIComponent(activeComplaint.report_id)}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Civic Report ${activeComplaint.report_id}`,
+          text: `Track status of civic issue ${activeComplaint.report_id} (${activeComplaint.problem_type}):`,
+          url: shareUrl,
+        });
+        return;
+      } catch {
+        // fallback to clipboard
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopiedShare(true);
+      setTimeout(() => setCopiedShare(false), 2500);
+    } catch {
+      // fallback
+    }
+  };
+
   // Build government-service style lifecycle timeline stages
   const getLifecycleStages = (c: Complaint) => {
     const status = c.status;
@@ -329,28 +357,20 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
         status: 'completed',
       },
       {
-        title: 'AI Analysis Completed',
-        subtitle: `${getProblemLabel(c.problem_type, t)} • ${Math.round(c.confidence * 100)}% confidence`,
-        status: 'completed',
-      },
-      {
-        title: `Assigned to ${c.department}`,
+        title: `Under Review / Assigned to ${c.department}`,
         subtitle:
           status === 'REPORTED'
-            ? 'Department routing pending'
+            ? 'Department routing completed. Awaiting field inspection scheduling.'
             : formatDateTime(c.created_at),
-        status:
-          status === 'REPORTED'
-            ? 'current'
-            : 'completed',
+        status: status === 'REPORTED' ? 'current' : 'completed',
       },
       {
         title: 'Work in Progress',
         subtitle:
           status === 'IN_PROGRESS'
-            ? 'Municipal field crew dispatched'
+            ? 'Municipal field crew actively executing resolution'
             : status === 'RESOLVED' || isReopened
-            ? 'Maintenance work performed'
+            ? 'Maintenance work performed on site'
             : 'Awaiting field crew dispatch',
         status:
           status === 'IN_PROGRESS'
@@ -359,8 +379,27 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
             ? 'completed'
             : 'upcoming',
       },
-      {
-        title: status === 'RESOLVED' || isReopened ? 'Resolved' : 'Resolution Pending',
+    ];
+
+    if (statusRequests.some((r) => r.status === 'PENDING')) {
+      stages.push({
+        title: 'Status Update Request Pending',
+        subtitle: `Citizen submitted follow-up inquiry to ${c.department}.`,
+        status: 'current',
+      });
+    }
+
+    if (status === 'RESOLVED' && !isConfirmed && !isReopened) {
+      stages.push({
+        title: 'Resolved by Authority',
+        subtitle: c.resolved_at
+          ? `Work marked complete on ${formatDateTime(c.resolved_at)}. Resolution pending your verification.`
+          : 'Work marked complete. Pending your verification.',
+        status: 'current',
+      });
+    } else {
+      stages.push({
+        title: status === 'RESOLVED' || isReopened ? 'Resolved by Authority' : 'Resolution Pending',
         subtitle:
           c.resolved_at
             ? `Resolved on ${formatDateTime(c.resolved_at)}`
@@ -371,8 +410,8 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
           status === 'RESOLVED' || isReopened
             ? 'completed'
             : 'upcoming',
-      },
-    ];
+      });
+    }
 
     if (isReopened) {
       stages.push({
@@ -571,7 +610,27 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                     {activeComplaint.report_id}
                   </div>
                 </div>
-                <StatusBadge status={activeComplaint.status} />
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleShareStatus}
+                    className="px-2.5 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-medium rounded-lg transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
+                    title="Share public verification link"
+                  >
+                    {copiedShare ? (
+                      <>
+                        <Check size={12} className="text-emerald-600" />
+                        <span className="text-emerald-700 font-semibold text-[11px]">Link Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Share2 size={12} />
+                        <span className="text-[11px]">Share Status</span>
+                      </>
+                    )}
+                  </button>
+                  <StatusBadge status={activeComplaint.status} />
+                </div>
               </div>
 
               {/* Action feedback alert banner */}
@@ -777,10 +836,12 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                     <div className="mt-0.5">
                       <SeverityBadge severity={activeComplaint.severity} showSubtitle />
                     </div>
+                    <span className="text-[10px] text-slate-500 block mt-1">Severity is an AI-assisted visual estimate.</span>
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">Responsible Department</span>
                     <span className="font-medium text-slate-800 block mt-0.5">{activeComplaint.department}</span>
+                    <span className="text-[10px] text-slate-500 block mt-1">Final complaint routing can be reviewed or changed by the citizen.</span>
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">Response Time</span>
@@ -1076,6 +1137,9 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                         <p className="text-[11px] text-amber-900 leading-snug">
                           Your verification directly impacts civic accountability. Confirm if field repairs are satisfactory or request reopening if the problem persists.
                         </p>
+                        <span className="text-[10px] text-amber-800/90 block pt-0.5">
+                          Resolution is marked complete after authority action and may be reopened if the issue persists.
+                        </span>
                       </div>
                     </div>
 

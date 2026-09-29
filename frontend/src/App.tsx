@@ -9,6 +9,7 @@ import { ReportFlow } from './pages/ReportFlow';
 import { MyReports } from './pages/MyReports';
 import { CivicMap } from './pages/CivicMap';
 import { HelpSupport } from './pages/HelpSupport';
+import { PublicStatusTracker } from './pages/PublicStatusTracker';
 import { AuthPage, type AuthMode } from './pages/AuthPage';
 import { useAuth } from './context/AuthContext';
 
@@ -20,6 +21,7 @@ export function App() {
   const [previousView, setPreviousView] = useState<NavView>('report');
   const [authReturnTo, setAuthReturnTo] = useState<NavView | null>(null);
   const [selectedComplaintId, setSelectedComplaintId] = useState<string | null>(null);
+  const [trackReportId, setTrackReportId] = useState<string | null>(null);
   const [authErrorMessage, setAuthErrorMessage] = useState<string | null>(null);
 
   // Sync with browser hash if user navigates via URL
@@ -27,9 +29,23 @@ export function App() {
     if (loading) return; // Wait until initial session resolution to avoid flashing
 
     const handleHashChange = () => {
-      const hash = window.location.hash.replace('#', '').toLowerCase();
+      const rawHash = window.location.hash.replace('#', '');
+      const [viewPart, queryPart] = rawHash.split('?');
+      const hash = viewPart.toLowerCase();
 
-      if (hash === 'report') {
+      // Check query parameter for deep-linked tracking
+      if (queryPart) {
+        const qp = new URLSearchParams(queryPart);
+        const refId = qp.get('id') || qp.get('report_id') || qp.get('track');
+        if (refId) {
+          setTrackReportId(refId.toUpperCase());
+        }
+      }
+
+      if (hash === 'track') {
+        setCurrentView('track');
+        return;
+      } else if (hash === 'report') {
         if (!isLoggedIn) {
           setAuthReturnTo('report');
           setAuthMode('login');
@@ -99,6 +115,17 @@ export function App() {
     }
     if (reportId) {
       setSelectedComplaintId(reportId);
+    }
+
+    if (view === 'track') {
+      if (reportId) {
+        setTrackReportId(reportId.toUpperCase());
+      }
+      setPreviousView(currentView !== 'auth' ? currentView : 'track');
+      setCurrentView('track');
+      window.location.hash = reportId ? `track?id=${encodeURIComponent(reportId.toUpperCase())}` : 'track';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
     }
 
     // Intercept protected views if citizen is not authenticated
@@ -200,6 +227,14 @@ export function App() {
 
           {currentView === 'map' && (
             <CivicMap onReportNew={() => navigateTo('report')} />
+          )}
+
+          {currentView === 'track' && (
+            <PublicStatusTracker
+              initialReportId={trackReportId}
+              onNavigateHome={() => navigateTo('home')}
+              onNavigateReport={() => navigateTo('report')}
+            />
           )}
 
           {currentView === 'help' && <HelpSupport />}

@@ -31,13 +31,33 @@ export interface ComplaintCreate {
   duplicate_of?: string | null;
 }
 
+export interface PublicTimelineEvent {
+  key: string;
+  title: string;
+  description: string;
+  timestamp?: string | null;
+  state: 'completed' | 'current' | 'upcoming';
+}
+
 export interface ComplaintPublicSummary {
   report_id: string;
-  problem_type: ProblemType;
+  problem_type: ProblemType | string;
   location_name: string;
-  status: string;
+  status: ComplaintStatus | string;
+  department?: string;
   created_at: string;
+  updated_at?: string | null;
+  resolved_at?: string | null;
+  citizen_resolution_confirmed?: boolean;
+  citizen_resolution_confirmed_at?: string | null;
+  citizen_reopened?: boolean;
+  citizen_reopened_at?: string | null;
+  reopen_reason?: string | null;
+  pending_status_request?: boolean;
+  response_time_hours?: number | null;
+  timeline_events?: PublicTimelineEvent[];
 }
+
 
 export interface Complaint {
   id: string;

@@ -114,3 +114,37 @@ async def require_authority(user: Dict = Depends(get_current_user)) -> Dict:
             detail="Authority role required. Citizens are not permitted to access this resource."
         )
     return user
+
+
+async def get_optional_user(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
+) -> Optional[Dict]:
+    """
+    Optional authentication: returns user dict if valid token provided, else None.
+    Does not raise 401 for anonymous public requests.
+    """
+    if not credentials or not credentials.credentials:
+        return None
+
+    token = credentials.credentials.strip()
+    if token in TEST_TOKENS:
+        return TEST_TOKENS[token]
+
+    if settings.SUPABASE_URL and settings.SUPABASE_SERVICE_ROLE_KEY:
+        try:
+            from supabase import create_client
+            client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
+            user_response = client.auth.get_user(token)
+            if user_response and user_response.user:
+                u = user_response.user
+                return {
+                    "id": str(u.id),
+                    "email": u.email,
+                    "role": (u.user_metadata or {}).get("role", "citizen"),
+                    "full_name": (u.user_metadata or {}).get("full_name") or (u.email.split("@")[0] if u.email else "Citizen")
+                }
+        except Exception:
+            return None
+
+    return None
+

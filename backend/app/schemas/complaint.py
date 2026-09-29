@@ -30,12 +30,36 @@ class ComplaintUpdateStatus(BaseModel):
 class CitizenReopenRequest(BaseModel):
     reason: Optional[str] = Field(None, max_length=500, description="Optional citizen notes on why issue is not resolved")
 
+class PublicTimelineEvent(BaseModel):
+    key: str
+    title: str
+    description: str
+    timestamp: Optional[datetime] = None
+    state: str  # "completed", "current", "upcoming"
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ComplaintPublicSummary(BaseModel):
     report_id: str
     problem_type: str
     location_name: str
     status: str
+    department: str = "Municipal Corporation"
     created_at: datetime
+    updated_at: Optional[datetime] = None
+    resolved_at: Optional[datetime] = None
+    citizen_resolution_confirmed: bool = False
+    citizen_resolution_confirmed_at: Optional[datetime] = None
+    citizen_reopened: bool = False
+    citizen_reopened_at: Optional[datetime] = None
+    reopen_reason: Optional[str] = None
+    pending_status_request: bool = False
+    response_time_hours: Optional[float] = None
+    timeline_events: List[PublicTimelineEvent] = Field(default_factory=list)
+
+    model_config = ConfigDict(from_attributes=True)
+
 
 class ComplaintStatusHistoryItem(BaseModel):
     id: str

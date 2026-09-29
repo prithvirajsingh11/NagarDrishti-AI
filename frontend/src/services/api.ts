@@ -16,7 +16,36 @@ import type {
 } from '../types/complaint';
 import { supabase } from './supabaseClient';
 
-const API_BASE = '/api';
+const RAW_API_BASE = (import.meta.env.VITE_API_BASE_URL || '').trim();
+const API_BASE = RAW_API_BASE
+  ? (RAW_API_BASE.endsWith('/api') ? RAW_API_BASE : `${RAW_API_BASE.replace(/\/+$/, '')}/api`)
+  : '/api';
+
+export async function apiFetch(
+  input: string,
+  init?: RequestInit,
+  timeoutMs: number = 30000
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(input, {
+      ...init,
+      signal: init?.signal || controller.signal,
+    });
+    return res;
+  } catch (err: any) {
+    if (err.name === 'AbortError') {
+      throw new Error('Request timed out. Please check your network connection and try again.');
+    }
+    if (err instanceof TypeError && err.message.toLowerCase().includes('failed to fetch')) {
+      throw new Error('Network connection failed. Please ensure the municipal service is reachable.');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   try {
@@ -61,6 +90,21 @@ async function parseErrorResponse(res: Response, defaultMsg: string): Promise<Er
   if (res.status === 401) {
     return new Error('Your session has expired. Please sign in again.');
   }
+  if (res.status === 403) {
+    return new Error('Access denied. You do not have permission to view or modify this report.');
+  }
+  if (res.status === 404) {
+    return new Error('The requested record could not be found.');
+  }
+  if (res.status === 413) {
+    return new Error('The uploaded image is too large (maximum size is 10 MB).');
+  }
+  if (res.status === 429) {
+    return new Error('Too many requests. Please wait a moment before trying again.');
+  }
+  if (res.status >= 500) {
+    return new Error('The municipal service is temporarily unavailable. Please try again shortly.');
+  }
 
   let errMsg = defaultMsg;
   try {
@@ -76,6 +120,17 @@ async function parseErrorResponse(res: Response, defaultMsg: string): Promise<Er
           lower.includes('jwt')
         ) {
           errMsg = 'Your session has expired. Please sign in again.';
+        } else if (
+          lower.includes('postgres') ||
+          lower.includes('supabase') ||
+          lower.includes('syntax') ||
+          lower.includes('column') ||
+          lower.includes('relation') ||
+          lower.includes('psycopg') ||
+          lower.includes('traceback')
+        ) {
+          // Never leak raw DB / SQL errors to the citizen
+          errMsg = defaultMsg;
         } else {
           errMsg = data.detail;
         }
@@ -93,7 +148,7 @@ export async function analyzeCivicImage(file: File): Promise<CivicDetectionResul
   formData.append('file', file);
 
   const authHeaders = await getAuthHeaders();
-  const res = await fetch(`${API_BASE}/analyze`, {
+  const res = await apiFetch(`${API_BASE}/analyze`, {
     method: 'POST',
     headers: authHeaders,
     body: formData,
@@ -111,7 +166,7 @@ export async function uploadComplaintImage(file: File): Promise<string> {
   formData.append('file', file);
 
   const authHeaders = await getAuthHeaders();
-  const res = await fetch(`${API_BASE}/complaints/upload`, {
+  const res = await apiFetch(`${API_BASE}/complaints/upload`, {
     method: 'POST',
     headers: authHeaders,
     body: formData,
@@ -130,7 +185,7 @@ export async function uploadComplaintImage(file: File): Promise<string> {
 
 export async function createComplaint(payload: ComplaintCreate): Promise<Complaint> {
   const headers = await getJsonAuthHeaders();
-  const res = await fetch(`${API_BASE}/complaints`, {
+  const res = await apiFetch(`${API_BASE}/complaints`, {
     method: 'POST',
     headers,
     body: JSON.stringify(payload),
@@ -159,7 +214,7 @@ export async function getComplaints(filters?: {
 
   const url = `${API_BASE}/complaints${params.toString() ? '?' + params.toString() : ''}`;
   const headers = await getAuthHeaders();
-  const res = await fetch(url, { headers });
+  const res = await apiFetch(url, { headers });
   if (!res.ok) {
     throw await parseErrorResponse(res, 'Failed to retrieve complaints.');
   }
@@ -168,7 +223,7 @@ export async function getComplaints(filters?: {
 
 export async function getComplaintById(id: string): Promise<Complaint> {
   const headers = await getAuthHeaders();
-  const res = await fetch(`${API_BASE}/complaints/${id}`, { headers });
+  const res = await apiFetch(`${API_BASE}/complaints/${id}`, { headers });
   if (!res.ok) {
     throw await parseErrorResponse(res, 'Complaint not found or access denied.');
   }
@@ -180,7 +235,7 @@ export async function updateComplaintStatus(
   status: ComplaintStatus
 ): Promise<Complaint> {
   const headers = await getJsonAuthHeaders();
-  const res = await fetch(`${API_BASE}/complaints/${id}/status`, {
+  const res = await apiFetch(`${API_BASE}/complaints/${id}/status`, {
     method: 'PATCH',
     headers,
     body: JSON.stringify({ status }),
@@ -195,7 +250,7 @@ export async function updateComplaintStatus(
 
 export async function confirmComplaintResolution(id: string): Promise<Complaint> {
   const headers = await getAuthHeaders();
-  const res = await fetch(`${API_BASE}/complaints/${id}/confirm-resolution`, {
+  const res = await apiFetch(`${API_BASE}/complaints/${id}/confirm-resolution`, {
     method: 'POST',
     headers,
   });
@@ -209,7 +264,7 @@ export async function confirmComplaintResolution(id: string): Promise<Complaint>
 
 export async function reopenComplaint(id: string, reason?: string): Promise<Complaint> {
   const headers = await getJsonAuthHeaders();
-  const res = await fetch(`${API_BASE}/complaints/${id}/reopen`, {
+  const res = await apiFetch(`${API_BASE}/complaints/${id}/reopen`, {
     method: 'POST',
     headers,
     body: JSON.stringify({ reason: reason || '' }),
@@ -224,7 +279,7 @@ export async function reopenComplaint(id: string, reason?: string): Promise<Comp
 
 export async function getPublicComplaintSummary(idOrReportId: string): Promise<ComplaintPublicSummary> {
   const headers = await getAuthHeaders();
-  const res = await fetch(`${API_BASE}/complaints/${idOrReportId}/public-summary`, { headers });
+  const res = await apiFetch(`${API_BASE}/complaints/${idOrReportId}/public-summary`, { headers });
 
   if (!res.ok) {
     throw await parseErrorResponse(res, 'Failed to retrieve referenced report summary.');
@@ -235,7 +290,7 @@ export async function getPublicComplaintSummary(idOrReportId: string): Promise<C
 
 export async function getDashboardStatistics(): Promise<DashboardStatistics> {
   const headers = await getAuthHeaders();
-  const res = await fetch(`${API_BASE}/dashboard/statistics`, { headers });
+  const res = await apiFetch(`${API_BASE}/dashboard/statistics`, { headers });
   if (!res.ok) {
     throw await parseErrorResponse(res, 'Failed to load dashboard statistics.');
   }
@@ -244,7 +299,7 @@ export async function getDashboardStatistics(): Promise<DashboardStatistics> {
 
 export async function getDashboardHeatmap(): Promise<HeatmapPoint[]> {
   const headers = await getAuthHeaders();
-  const res = await fetch(`${API_BASE}/dashboard/heatmap`, { headers });
+  const res = await apiFetch(`${API_BASE}/dashboard/heatmap`, { headers });
   if (!res.ok) {
     throw await parseErrorResponse(res, 'Failed to load heatmap data.');
   }
@@ -252,7 +307,7 @@ export async function getDashboardHeatmap(): Promise<HeatmapPoint[]> {
 }
 
 export async function getDepartments(): Promise<Department[]> {
-  const res = await fetch(`${API_BASE}/departments`);
+  const res = await apiFetch(`${API_BASE}/departments`);
   if (!res.ok) {
     throw new Error('Failed to fetch departments.');
   }
@@ -261,7 +316,7 @@ export async function getDepartments(): Promise<Department[]> {
 
 export async function getComplaintHistory(id: string): Promise<ComplaintStatusHistoryItem[]> {
   const headers = await getAuthHeaders();
-  const res = await fetch(`${API_BASE}/complaints/${id}/history`, { headers });
+  const res = await apiFetch(`${API_BASE}/complaints/${id}/history`, { headers });
   if (!res.ok) {
     throw await parseErrorResponse(res, 'Failed to retrieve complaint history.');
   }
@@ -270,7 +325,7 @@ export async function getComplaintHistory(id: string): Promise<ComplaintStatusHi
 
 export async function getCitizenImpact(): Promise<CitizenImpactSummary> {
   const headers = await getAuthHeaders();
-  const res = await fetch(`${API_BASE}/complaints/my-impact`, { headers });
+  const res = await apiFetch(`${API_BASE}/complaints/my-impact`, { headers });
   if (!res.ok) {
     throw await parseErrorResponse(res, 'Failed to load civic impact summary.');
   }
@@ -279,7 +334,7 @@ export async function getCitizenImpact(): Promise<CitizenImpactSummary> {
 
 export async function getNotifications(limit: number = 50): Promise<CitizenNotification[]> {
   const headers = await getAuthHeaders();
-  const res = await fetch(`${API_BASE}/notifications?limit=${limit}`, { headers });
+  const res = await apiFetch(`${API_BASE}/notifications?limit=${limit}`, { headers });
   if (!res.ok) {
     throw await parseErrorResponse(res, 'Failed to fetch notifications.');
   }
@@ -288,7 +343,7 @@ export async function getNotifications(limit: number = 50): Promise<CitizenNotif
 
 export async function markNotificationAsRead(id: string): Promise<void> {
   const headers = await getAuthHeaders();
-  const res = await fetch(`${API_BASE}/notifications/${id}/read`, {
+  const res = await apiFetch(`${API_BASE}/notifications/${id}/read`, {
     method: 'PATCH',
     headers,
   });
@@ -299,7 +354,7 @@ export async function markNotificationAsRead(id: string): Promise<void> {
 
 export async function markAllNotificationsAsRead(): Promise<number> {
   const headers = await getAuthHeaders();
-  const res = await fetch(`${API_BASE}/notifications/mark-all-read`, {
+  const res = await apiFetch(`${API_BASE}/notifications/mark-all-read`, {
     method: 'POST',
     headers,
   });
@@ -326,7 +381,7 @@ export async function getNearbyCivicIssues(filters?: {
 
   const url = `${API_BASE}/nearby/issues${params.toString() ? '?' + params.toString() : ''}`;
   const headers = await getAuthHeaders();
-  const res = await fetch(url, { headers });
+  const res = await apiFetch(url, { headers });
   if (!res.ok) {
     throw await parseErrorResponse(res, 'Failed to fetch nearby civic issues.');
   }
@@ -348,7 +403,7 @@ export async function getSimilarComplaints(params: {
 
   const url = `${API_BASE}/complaints/similar?${qp.toString()}`;
   const headers = await getAuthHeaders();
-  const res = await fetch(url, { headers });
+  const res = await apiFetch(url, { headers });
   if (!res.ok) {
     throw await parseErrorResponse(res, 'Failed to check similar reports.');
   }
@@ -360,7 +415,7 @@ export async function requestComplaintStatusUpdate(
   message?: string
 ): Promise<StatusRequestResponse> {
   const headers = await getJsonAuthHeaders();
-  const res = await fetch(`${API_BASE}/complaints/${idOrReportId}/status-request`, {
+  const res = await apiFetch(`${API_BASE}/complaints/${idOrReportId}/status-request`, {
     method: 'POST',
     headers,
     body: JSON.stringify({ message: message || null }),
@@ -376,7 +431,7 @@ export async function getComplaintStatusRequests(
   idOrReportId: string
 ): Promise<StatusRequestResponse[]> {
   const headers = await getAuthHeaders();
-  const res = await fetch(`${API_BASE}/complaints/${idOrReportId}/status-requests`, { headers });
+  const res = await apiFetch(`${API_BASE}/complaints/${idOrReportId}/status-requests`, { headers });
   if (!res.ok) {
     throw await parseErrorResponse(res, 'Failed to fetch status update requests.');
   }

@@ -1,8 +1,8 @@
 import React from 'react';
-import { Home, Camera, FileText, Map, HelpCircle } from 'lucide-react';
+import { Home, Camera, FileText, Map, Search, HelpCircle } from 'lucide-react';
 import { MonumentIcon, IndianFlagRibbon } from './CivicEmblems';
 
-export type NavView = 'home' | 'report' | 'my-reports' | 'map' | 'help' | 'auth';
+export type NavView = 'home' | 'report' | 'my-reports' | 'map' | 'track' | 'help' | 'auth';
 
 interface SidebarProps {
   currentView: NavView;
@@ -16,8 +16,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, class
     { id: 'report' as NavView, label: 'Report Issue', icon: Camera },
     { id: 'my-reports' as NavView, label: 'My Reports', icon: FileText },
     { id: 'map' as NavView, label: 'Map', icon: Map },
+    { id: 'track' as NavView, label: 'Track Status', icon: Search },
     { id: 'help' as NavView, label: 'Help & Support', icon: HelpCircle },
   ];
+
 
   return (
     <aside

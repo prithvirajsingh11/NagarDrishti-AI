@@ -3,7 +3,7 @@ from typing import Dict, List, Optional
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile, status
 from fastapi.security import HTTPAuthorizationCredentials
 
-from app.core.auth import get_current_user, require_authority, security, TEST_TOKENS
+from app.core.auth import get_current_user, get_optional_user, require_authority, security, TEST_TOKENS
 from app.core.config import settings
 from app.core.database import db
 from app.schemas.complaint import (
@@ -25,6 +25,7 @@ router = APIRouter(prefix="/complaints", tags=["Complaints"])
 logger = logging.getLogger(__name__)
 
 SUPPORTED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp", "image/jpg"}
+MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
 
 
 async def _resolve_user_from_request(
@@ -104,6 +105,11 @@ async def upload_complaint_image(
     file_bytes = await file.read()
     if not file_bytes:
         raise HTTPException(status_code=400, detail="Empty image file received.")
+    if len(file_bytes) > MAX_FILE_SIZE_BYTES:
+        raise HTTPException(
+            status_code=getattr(status, "HTTP_413_CONTENT_TOO_LARGE", status.HTTP_413_REQUEST_ENTITY_TOO_LARGE),
+            detail="Image file too large. Maximum supported size is 10 MB."
+        )
 
     image_url = await storage_service.upload_image(file_bytes, mime_type=content_type)
     return {"image_url": image_url}
@@ -365,15 +371,15 @@ async def reopen_complaint(
 @router.get("/{id}/public-summary", response_model=ComplaintPublicSummary)
 async def get_public_summary(
     id: str,
-    user: Dict = Depends(get_current_user)
+    user: Optional[Dict] = Depends(get_optional_user)
 ):
     """
-    Safe public summary of a complaint (used for duplicate report notice).
+    Safe public summary of a complaint (used for duplicate report notice and public status lookup).
     Strictly returns safe public fields with zero citizen personal info.
     """
     summary = await db.get_public_summary(id)
     if not summary:
-        raise HTTPException(status_code=404, detail="Referenced complaint not found.")
+        raise HTTPException(status_code=404, detail="Complaint not found.")
     return summary
 
 

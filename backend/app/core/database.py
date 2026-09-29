@@ -1201,19 +1201,171 @@ class Database:
 
     async def get_public_summary(self, id_or_report_id: str) -> Optional[Dict]:
         """
-        Retrieves safe public summary of a complaint (e.g. for duplicate reference).
-        Strictly strips all personal citizen data, contact details, and private notes.
+        Retrieves safe public summary of a complaint (used for duplicate reference and public tracking).
+        Strictly strips all personal citizen data, contact details, private images, and internal notes.
+        Calculates factual timeline milestones and response times without SLA promises.
         """
         complaint = await self.get_complaint_by_id(id_or_report_id, is_authority=True)
         if not complaint:
             return None
+
+        cid = complaint.get("id")
+        rid = complaint.get("report_id")
+
+        # Check if there is an active pending status request
+        pending_req = any(
+            (r.get("complaint_id") == cid or r.get("report_id") == rid) and r.get("status") == "PENDING"
+            for r in self._memory_status_requests
+        )
+        if not pending_req and cid:
+            client = self._get_client()
+            if client:
+                try:
+                    res = client.table("complaint_status_requests").select("id").eq("complaint_id", cid).eq("status", "PENDING").limit(1).execute()
+                    if res.data and len(res.data) > 0:
+                        pending_req = True
+                except Exception:
+                    pass
+
+        # Calculate factual response time if resolved
+        created_at_str = complaint.get("created_at")
+        resolved_at_str = complaint.get("resolved_at")
+        response_time_hours = None
+        if created_at_str and resolved_at_str:
+            try:
+                c_dt = datetime.fromisoformat(str(created_at_str).replace("Z", "+00:00"))
+                r_dt = datetime.fromisoformat(str(resolved_at_str).replace("Z", "+00:00"))
+                diff_sec = (r_dt - c_dt).total_seconds()
+                if diff_sec >= 0:
+                    response_time_hours = round(diff_sec / 3600.0, 1)
+            except Exception:
+                pass
+
+        # Build government-service lifecycle timeline
+        timeline_events = []
+        c_status = complaint.get("status", "REPORTED")
+        c_dept = complaint.get("department") or "Municipal Corporation"
+        is_confirmed = bool(complaint.get("citizen_resolution_confirmed"))
+        is_reopened = bool(complaint.get("citizen_reopened")) or c_status == "REOPENED"
+
+        # 1. Reported
+        timeline_events.append({
+            "key": "REPORTED",
+            "title": "Report Submitted",
+            "description": f"Civic report registered and assigned official tracking ID {rid}.",
+            "timestamp": complaint.get("created_at"),
+            "state": "completed"
+        })
+
+        # 2. Under Review / In Progress
+        if c_status == "REPORTED":
+            timeline_events.append({
+                "key": "UNDER_REVIEW",
+                "title": f"Under Review by {c_dept}",
+                "description": "Department routing completed. Awaiting municipal field crew scheduling.",
+                "timestamp": complaint.get("updated_at") or complaint.get("created_at"),
+                "state": "current"
+            })
+        elif c_status == "IN_PROGRESS":
+            timeline_events.append({
+                "key": "IN_PROGRESS",
+                "title": f"In Progress ({c_dept})",
+                "description": "Municipal field crew actively executing resolution.",
+                "timestamp": complaint.get("updated_at") or complaint.get("created_at"),
+                "state": "current"
+            })
+        else:
+            timeline_events.append({
+                "key": "IN_PROGRESS",
+                "title": f"Addressed by {c_dept}",
+                "description": "Department field operations logged.",
+                "timestamp": complaint.get("updated_at") or complaint.get("created_at"),
+                "state": "completed"
+            })
+
+        # 3. Status update request (if pending)
+        if pending_req:
+            timeline_events.append({
+                "key": "STATUS_REQUEST_PENDING",
+                "title": "Follow-Up Inquiry Pending",
+                "description": "Citizen submitted a status update request to the responsible department.",
+                "timestamp": complaint.get("updated_at") or complaint.get("created_at"),
+                "state": "current"
+            })
+
+        # 4. Resolved
+        if c_status == "RESOLVED" and not is_confirmed and not is_reopened:
+            timeline_events.append({
+                "key": "RESOLVED",
+                "title": "Resolution Marked by Authority",
+                "description": "Authority marked field work complete. Pending citizen verification.",
+                "timestamp": complaint.get("resolved_at") or complaint.get("updated_at"),
+                "state": "current"
+            })
+        elif is_confirmed or (c_status == "RESOLVED" and not is_reopened):
+            timeline_events.append({
+                "key": "RESOLVED",
+                "title": "Resolved by Authority",
+                "description": "Field operations completed on site.",
+                "timestamp": complaint.get("resolved_at") or complaint.get("updated_at"),
+                "state": "completed"
+            })
+        elif is_reopened:
+            timeline_events.append({
+                "key": "RESOLVED",
+                "title": "Marked Resolved by Authority",
+                "description": "Initial field repairs performed.",
+                "timestamp": complaint.get("resolved_at") or complaint.get("updated_at"),
+                "state": "completed"
+            })
+        else:
+            timeline_events.append({
+                "key": "RESOLVED",
+                "title": "Resolution Pending",
+                "description": "Awaiting municipal inspection and remediation.",
+                "timestamp": None,
+                "state": "upcoming"
+            })
+
+        # 5. Reopened (if applicable)
+        if is_reopened:
+            timeline_events.append({
+                "key": "REOPENED",
+                "title": "Reopened by Citizen",
+                "description": complaint.get("reopen_reason") or "Citizen indicated that the issue persists on site.",
+                "timestamp": complaint.get("citizen_reopened_at") or complaint.get("updated_at"),
+                "state": "current"
+            })
+
+        # 6. Citizen Verified (if applicable)
+        if is_confirmed:
+            timeline_events.append({
+                "key": "CITIZEN_VERIFIED",
+                "title": "Citizen Verified Resolution",
+                "description": "Citizen verified that the issue has been satisfactorily resolved.",
+                "timestamp": complaint.get("citizen_resolution_confirmed_at") or complaint.get("updated_at"),
+                "state": "completed"
+            })
+
         return {
-            "report_id": complaint.get("report_id"),
+            "report_id": rid,
             "problem_type": complaint.get("problem_type"),
             "location_name": complaint.get("location_name"),
-            "status": complaint.get("status"),
-            "created_at": complaint.get("created_at")
+            "status": c_status,
+            "department": c_dept,
+            "created_at": complaint.get("created_at"),
+            "updated_at": complaint.get("updated_at") or complaint.get("created_at"),
+            "resolved_at": complaint.get("resolved_at"),
+            "citizen_resolution_confirmed": is_confirmed,
+            "citizen_resolution_confirmed_at": complaint.get("citizen_resolution_confirmed_at"),
+            "citizen_reopened": is_reopened,
+            "citizen_reopened_at": complaint.get("citizen_reopened_at"),
+            "reopen_reason": complaint.get("reopen_reason") if is_reopened else None,
+            "pending_status_request": pending_req,
+            "response_time_hours": response_time_hours,
+            "timeline_events": timeline_events
         }
+
 
     def calculate_hotspots(self, complaints: List[Dict]) -> List[Dict]:
         """

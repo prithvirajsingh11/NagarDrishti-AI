@@ -184,7 +184,7 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
             {recentReports.map((c) => {
               const displayImage =
                 c.image_url?.startsWith('/api') && token
-                  ? `${c.image_url}?token=${token}`
+                  ? `${c.image_url}?token=${encodeURIComponent(token)}`
                   : c.image_url;
 
               return (

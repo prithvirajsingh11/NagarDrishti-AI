@@ -104,9 +104,16 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, onSearch }) => {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (onSearch && searchQuery.trim()) {
-      onSearch(searchQuery.trim());
+    const query = searchQuery.trim();
+    if (!query) return;
+
+    if (query.toUpperCase().startsWith('NGD-') || /^[A-Z0-9-]{6,}$/i.test(query)) {
+      onNavigate('track', undefined, query.toUpperCase());
+    } else if (onSearch) {
+      onSearch(query);
       onNavigate('my-reports');
+    } else {
+      onNavigate('track', undefined, query.toUpperCase());
     }
   };
 
@@ -432,6 +439,15 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, onSearch }) => {
                 className="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 text-left"
               >
                 Map
+              </button>
+              <button
+                onClick={() => {
+                  onNavigate('track');
+                  setMobileMenuOpen(false);
+                }}
+                className="p-2 rounded-lg bg-blue-50 text-blue-700 font-semibold text-left"
+              >
+                Track Status
               </button>
               <button
                 onClick={() => {
