@@ -2,16 +2,19 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Crosshair, MapPin } from 'lucide-react';
 import L from 'leaflet';
 
+export const DEFAULT_MAP_CENTER: [number, number] = [23.2599, 77.4126];
+export const DEFAULT_MAP_ZOOM = 12;
+
 interface LocationPickerProps {
-  latitude: number;
-  longitude: number;
+  latitude?: number;
+  longitude?: number;
   locationName: string;
   onChange: (lat: number, lng: number, name: string) => void;
 }
 
 export const LocationPicker: React.FC<LocationPickerProps> = ({
-  latitude,
-  longitude,
+  latitude = DEFAULT_MAP_CENTER[0],
+  longitude = DEFAULT_MAP_CENTER[1],
   locationName,
   onChange,
 }) => {
@@ -29,7 +32,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
       const map = L.map(mapContainerRef.current, {
         zoomControl: true,
         attributionControl: true,
-      }).setView([latitude, longitude], 15);
+      }).setView([latitude, longitude], DEFAULT_MAP_ZOOM);
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
@@ -163,7 +166,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
           type="text"
           value={locationName}
           onChange={(e) => onChange(latitude, longitude, e.target.value)}
-          placeholder="e.g. Near Metro Pillar 42, Connaught Place"
+          placeholder="e.g. Near MP Nagar Zone 1, Bhopal"
           className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-sky-500 bg-white text-slate-900"
         />
         <p className="text-[11px] text-slate-500 mt-1">

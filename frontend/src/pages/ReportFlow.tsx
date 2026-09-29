@@ -28,7 +28,7 @@ import {
 import { ProblemIcon, getProblemLabel } from '../components/ProblemIcon';
 import { SeverityBadge } from '../components/SeverityBadge';
 import { StatusBadge } from '../components/StatusBadge';
-import { LocationPicker } from '../components/LocationPicker';
+import { LocationPicker, DEFAULT_MAP_CENTER } from '../components/LocationPicker';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -92,9 +92,9 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({ onCancel, onSuccess, onR
   const [description, setDescription] = useState<string>('');
 
   // Location State
-  const [latitude, setLatitude] = useState<number>(28.6139);
-  const [longitude, setLongitude] = useState<number>(77.2090);
-  const [locationName, setLocationName] = useState<string>('Connaught Place, New Delhi');
+  const [latitude, setLatitude] = useState<number>(DEFAULT_MAP_CENTER[0]);
+  const [longitude, setLongitude] = useState<number>(DEFAULT_MAP_CENTER[1]);
+  const [locationName, setLocationName] = useState<string>('Bhopal, Madhya Pradesh');
 
   // Submission state
   const [submittedComplaint, setSubmittedComplaint] = useState<Complaint | null>(null);
