@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Camera, CheckCircle2, ChevronRight, Clock, FileText, MapPin, RotateCcw, Sparkles } from 'lucide-react';
 import type { CitizenImpactSummary, Complaint } from '../types/complaint';
-import { getCitizenImpact, getComplaints } from '../services/api';
+import { getCitizenImpact, getComplaints, getControlledImageUrl } from '../services/api';
 import { getProblemLabel } from '../components/ProblemIcon';
 import { StatusBadge } from '../components/StatusBadge';
 import { SeverityBadge } from '../components/SeverityBadge';
@@ -182,10 +182,7 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
         ) : (
           <div className="space-y-2">
             {recentReports.map((c) => {
-              const displayImage =
-                c.image_url?.startsWith('/api') && token
-                  ? `${c.image_url}?token=${encodeURIComponent(token)}`
-                  : c.image_url;
+              const displayImage = getControlledImageUrl(c.image_url, token);
 
               return (
                 <div

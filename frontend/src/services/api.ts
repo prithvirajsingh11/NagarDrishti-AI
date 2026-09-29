@@ -16,10 +16,43 @@ import type {
 } from '../types/complaint';
 import { supabase } from './supabaseClient';
 
-const RAW_API_BASE = (import.meta.env.VITE_API_BASE_URL || '').trim();
-const API_BASE = RAW_API_BASE
-  ? (RAW_API_BASE.endsWith('/api') ? RAW_API_BASE : `${RAW_API_BASE.replace(/\/+$/, '')}/api`)
+const RAW_API_BASE = (
+  import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.VITE_API_URL ||
+  ''
+).trim();
+
+export const API_BASE = RAW_API_BASE
+  ? (RAW_API_BASE.replace(/\/+$/, '').endsWith('/api')
+      ? RAW_API_BASE.replace(/\/+$/, '')
+      : `${RAW_API_BASE.replace(/\/+$/, '')}/api`)
   : '/api';
+
+export function resolveApiUrl(path: string): string {
+  if (!path) return '';
+  if (
+    path.startsWith('http://') ||
+    path.startsWith('https://') ||
+    path.startsWith('blob:') ||
+    path.startsWith('data:')
+  ) {
+    return path;
+  }
+  if (API_BASE === '/api') return path;
+  const baseRoot = API_BASE.replace(/\/api$/, '');
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${baseRoot}${cleanPath}`;
+}
+
+export function getControlledImageUrl(url?: string | null, token?: string | null): string {
+  if (!url) return '';
+  const resolved = resolveApiUrl(url);
+  if (url.startsWith('/api') && token) {
+    const separator = resolved.includes('?') ? '&' : '?';
+    return `${resolved}${separator}token=${encodeURIComponent(token)}`;
+  }
+  return resolved;
+}
 
 export async function apiFetch(
   input: string,

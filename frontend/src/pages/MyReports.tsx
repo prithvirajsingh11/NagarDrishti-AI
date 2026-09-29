@@ -26,6 +26,7 @@ import {
   getComplaintHistory,
   getComplaintStatusRequests,
   getComplaints,
+  getControlledImageUrl as resolveControlledImageUrl,
   getPublicComplaintSummary,
   reopenComplaint,
   requestComplaintStatusUpdate
@@ -219,11 +220,7 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
   });
 
   const getControlledImageUrl = (url?: string | null) => {
-    if (!url) return '';
-    if (url.startsWith('/api') && token) {
-      return `${url}?token=${encodeURIComponent(token)}`;
-    }
-    return url;
+    return resolveControlledImageUrl(url, token);
   };
 
   const formatDateTime = (dateStr?: string | null) => {
