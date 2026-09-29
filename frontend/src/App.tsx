@@ -15,10 +15,10 @@ import { useAuth } from './context/AuthContext';
 
 export function App() {
   const { isLoggedIn, loading } = useAuth();
-  // Default to 'report' if hash specifies or let user start on 'report' to directly match screenshot
-  const [currentView, setCurrentView] = useState<NavView>('report');
+  // Default to 'home' for first-time visitors
+  const [currentView, setCurrentView] = useState<NavView>('home');
   const [authMode, setAuthMode] = useState<AuthMode>('login');
-  const [previousView, setPreviousView] = useState<NavView>('report');
+  const [previousView, setPreviousView] = useState<NavView>('home');
   const [authReturnTo, setAuthReturnTo] = useState<NavView | null>(null);
   const [selectedComplaintId, setSelectedComplaintId] = useState<string | null>(null);
   const [trackReportId, setTrackReportId] = useState<string | null>(null);
@@ -88,8 +88,8 @@ export function App() {
         else setAuthMode('login');
         setCurrentView('auth');
       } else {
-        // Default to report to present the requested civic reporting UI
-        setCurrentView('report');
+        // Default to home for clean landing experience
+        setCurrentView('home');
       }
     };
 

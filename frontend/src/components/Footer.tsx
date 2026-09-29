@@ -21,27 +21,17 @@ export const Footer: React.FC = () => {
         {/* Right Side: Links & Language Selector */}
         <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs">
           <a
-            href="#privacy"
-            onClick={(e) => e.preventDefault()}
+            href="#help"
             className="text-slate-500 hover:text-slate-900 transition-colors"
           >
-            Privacy Policy
+            Help & Guidelines
           </a>
           <span className="text-slate-200">|</span>
           <a
-            href="#terms"
-            onClick={(e) => e.preventDefault()}
+            href="#help"
             className="text-slate-500 hover:text-slate-900 transition-colors"
           >
-            Terms of Service
-          </a>
-          <span className="text-slate-200">|</span>
-          <a
-            href="#contact"
-            onClick={(e) => e.preventDefault()}
-            className="text-slate-500 hover:text-slate-900 transition-colors"
-          >
-            Contact Us
+            Helplines & Contact
           </a>
           <span className="text-slate-200">|</span>
           <div className="inline-flex items-center">
