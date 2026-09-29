@@ -2,21 +2,23 @@ import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import type { Complaint } from './types/complaint';
 import { Navbar } from './components/Navbar';
+import { Sidebar, type NavView } from './components/Sidebar';
 import { Footer } from './components/Footer';
 import { CitizenHome } from './pages/CitizenHome';
 import { ReportFlow } from './pages/ReportFlow';
 import { MyReports } from './pages/MyReports';
+import { CivicMap } from './pages/CivicMap';
+import { HelpSupport } from './pages/HelpSupport';
 import { AuthPage, type AuthMode } from './pages/AuthPage';
 import { useAuth } from './context/AuthContext';
 
-type ViewMode = 'home' | 'report' | 'my-reports' | 'auth';
-
 export function App() {
   const { isLoggedIn, loading } = useAuth();
-  const [currentView, setCurrentView] = useState<ViewMode>('home');
+  // Default to 'report' if hash specifies or let user start on 'report' to directly match screenshot
+  const [currentView, setCurrentView] = useState<NavView>('report');
   const [authMode, setAuthMode] = useState<AuthMode>('login');
-  const [previousView, setPreviousView] = useState<ViewMode>('home');
-  const [authReturnTo, setAuthReturnTo] = useState<ViewMode | null>(null);
+  const [previousView, setPreviousView] = useState<NavView>('report');
+  const [authReturnTo, setAuthReturnTo] = useState<NavView | null>(null);
   const [selectedComplaintId, setSelectedComplaintId] = useState<string | null>(null);
   const [authErrorMessage, setAuthErrorMessage] = useState<string | null>(null);
 
@@ -43,14 +45,25 @@ export function App() {
           return;
         }
         setCurrentView('my-reports');
-      } else if (hash === 'login' || hash === 'signup' || hash === 'forgot-password' || hash === 'auth') {
+      } else if (hash === 'map') {
+        setCurrentView('map');
+      } else if (hash === 'help') {
+        setCurrentView('help');
+      } else if (hash === 'home') {
+        setCurrentView('home');
+      } else if (
+        hash === 'login' ||
+        hash === 'signup' ||
+        hash === 'forgot-password' ||
+        hash === 'auth'
+      ) {
         if (isLoggedIn) {
           // Citizen is already authenticated: transition out of auth immediately
-          const dest = authReturnTo || (previousView === 'auth' ? 'home' : previousView);
+          const dest = authReturnTo || (previousView === 'auth' ? 'report' : previousView);
           setAuthReturnTo(null);
           setCurrentView(dest);
           if (window.location.hash) {
-            window.location.hash = dest === 'home' ? '' : dest;
+            window.location.hash = dest;
           }
           return;
         }
@@ -59,7 +72,8 @@ export function App() {
         else setAuthMode('login');
         setCurrentView('auth');
       } else {
-        setCurrentView('home');
+        // Default to report to present the requested civic reporting UI
+        setCurrentView('report');
       }
     };
 
@@ -71,15 +85,15 @@ export function App() {
   // Reactive auto-redirect: whenever authenticated citizen is on 'auth' view, immediately redirect
   useEffect(() => {
     if (!loading && isLoggedIn && currentView === 'auth') {
-      const dest = authReturnTo || (previousView === 'auth' ? 'home' : previousView);
+      const dest = authReturnTo || (previousView === 'auth' ? 'report' : previousView);
       setAuthReturnTo(null);
       setCurrentView(dest);
-      window.location.hash = dest === 'home' ? '' : dest;
+      window.location.hash = dest;
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [isLoggedIn, loading, currentView, authReturnTo, previousView]);
 
-  const navigateTo = (view: ViewMode, mode?: AuthMode) => {
+  const navigateTo = (view: NavView, mode?: AuthMode) => {
     if (mode) {
       setAuthMode(mode);
     }
@@ -88,7 +102,7 @@ export function App() {
     if ((view === 'report' || view === 'my-reports') && !isLoggedIn) {
       setAuthReturnTo(view);
       setAuthMode(mode || 'login');
-      setPreviousView(currentView !== 'auth' ? currentView : 'home');
+      setPreviousView(currentView !== 'auth' ? currentView : 'report');
       setCurrentView('auth');
       window.location.hash = mode || 'login';
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -97,10 +111,10 @@ export function App() {
 
     // If citizen is logged in and tries to navigate to auth, redirect to destination
     if (view === 'auth' && isLoggedIn) {
-      const dest = authReturnTo || (previousView === 'auth' ? 'home' : previousView);
+      const dest = authReturnTo || (previousView === 'auth' ? 'report' : previousView);
       setAuthReturnTo(null);
       setCurrentView(dest);
-      window.location.hash = dest === 'home' ? '' : dest;
+      window.location.hash = dest;
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
@@ -109,7 +123,7 @@ export function App() {
       setPreviousView(view);
     }
     setCurrentView(view);
-    window.location.hash = view === 'home' ? '' : mode || view;
+    window.location.hash = view;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -126,66 +140,89 @@ export function App() {
   // Prevent flash of protected content while initial session restores
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-600">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-600 font-sans">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-slate-800" />
-          <span className="text-xs font-medium text-slate-500">Initializing NagarDrishti AI...</span>
+          <Loader2 className="w-8 h-8 animate-spin text-[#0B2545]" />
+          <span className="text-xs font-semibold text-slate-500">
+            Initializing NagarDrishti AI...
+          </span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-transparent text-slate-900">
+    <div className="min-h-screen flex flex-col bg-[#FAFBFD] text-slate-900 font-sans antialiased">
+      {/* Top Header Navbar */}
       <Navbar currentView={currentView} onNavigate={navigateTo} />
 
-      <main className="flex-1 pb-12">
-        {currentView === 'home' && (
-          <CitizenHome
-            onStartReport={() => navigateTo('report')}
-            onSelectComplaint={handleSelectComplaintFromFeed}
+      {/* Main Container with Sidebar + Content */}
+      <div className="flex-1 max-w-[1520px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col lg:flex-row gap-6">
+        {/* Left Sidebar (visible on desktop) */}
+        {currentView !== 'auth' && (
+          <Sidebar
+            currentView={currentView}
+            onNavigate={navigateTo}
+            className="hidden lg:flex"
           />
         )}
 
-        {currentView === 'report' && (
-          <ReportFlow
-            onCancel={() => navigateTo('home')}
-            onSuccess={handleReportSuccess}
-            onRequireAuth={() => {
-              setAuthReturnTo('report');
-              setAuthErrorMessage('Your session has expired. Please sign in again.');
-              navigateTo('auth', 'login');
-            }}
-          />
-        )}
+        {/* Content Area */}
+        <main className="flex-1 min-w-0">
+          {currentView === 'home' && (
+            <CitizenHome
+              onStartReport={() => navigateTo('report')}
+              onSelectComplaint={handleSelectComplaintFromFeed}
+            />
+          )}
 
-        {currentView === 'my-reports' && (
-          <MyReports
-            onStartNewReport={() => navigateTo('report')}
-            selectedComplaintId={selectedComplaintId}
-          />
-        )}
+          {currentView === 'report' && (
+            <ReportFlow
+              onCancel={() => navigateTo('home')}
+              onSuccess={handleReportSuccess}
+              onRequireAuth={() => {
+                setAuthReturnTo('report');
+                setAuthErrorMessage('Please sign in or register to report civic issues.');
+                navigateTo('auth', 'login');
+              }}
+            />
+          )}
 
-        {currentView === 'auth' && (
-          <AuthPage
-            initialMode={authMode}
-            reason={authReturnTo === 'report' ? 'report' : 'default'}
-            initialError={authErrorMessage}
-            onSuccess={() => {
-              setAuthErrorMessage(null);
-              const dest = authReturnTo || (previousView === 'auth' ? 'home' : previousView);
-              setAuthReturnTo(null);
-              navigateTo(dest);
-            }}
-            onCancel={() => {
-              setAuthErrorMessage(null);
-              setAuthReturnTo(null);
-              navigateTo(previousView === 'auth' ? 'home' : previousView);
-            }}
-          />
-        )}
-      </main>
+          {currentView === 'my-reports' && (
+            <MyReports
+              onStartNewReport={() => navigateTo('report')}
+              selectedComplaintId={selectedComplaintId}
+            />
+          )}
 
+          {currentView === 'map' && (
+            <CivicMap onReportNew={() => navigateTo('report')} />
+          )}
+
+          {currentView === 'help' && <HelpSupport />}
+
+          {currentView === 'auth' && (
+            <AuthPage
+              initialMode={authMode}
+              reason={authReturnTo === 'report' ? 'report' : 'default'}
+              initialError={authErrorMessage}
+              onSuccess={() => {
+                setAuthErrorMessage(null);
+                const dest = authReturnTo || (previousView === 'auth' ? 'report' : previousView);
+                setAuthReturnTo(null);
+                navigateTo(dest);
+              }}
+              onCancel={() => {
+                setAuthErrorMessage(null);
+                setAuthReturnTo(null);
+                navigateTo(previousView === 'auth' ? 'report' : previousView);
+              }}
+            />
+          )}
+        </main>
+      </div>
+
+      {/* Footer */}
       <Footer />
     </div>
   );
