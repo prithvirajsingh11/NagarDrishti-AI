@@ -434,16 +434,16 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/80">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/80 dark:border-slate-800">
         <div>
-          <h1 className="text-lg font-bold text-slate-900">{t('myreports.title')}</h1>
-          <p className="text-xs text-slate-500">
+          <h1 className="text-lg font-bold text-slate-900 dark:text-white">{t('myreports.title')}</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             {t('myreports.desc')}
           </p>
         </div>
         <button
           onClick={onStartNewReport}
-          className="self-start sm:self-auto px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs rounded-lg transition-colors cursor-pointer"
+          className="self-start sm:self-auto px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-medium text-xs rounded-lg transition-colors cursor-pointer shadow-xs"
         >
           {t('myreports.new_report')}
         </button>
@@ -452,25 +452,25 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
       {/* Search & Status Filter Section */}
       <div className="space-y-3 font-sans">
         <div className="relative">
-          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by Report ID, Category, Location, or Department..."
-            className="w-full pl-9 pr-3.5 py-2 bg-white/80 border border-slate-200/90 rounded-lg text-xs text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:border-slate-400 shadow-2xs"
+            placeholder={t('myreports.search_placeholder')}
+            className="w-full pl-9 pr-3.5 py-2 bg-white/80 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700/80 rounded-lg text-xs text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-hidden focus:border-slate-400 dark:focus:border-slate-500 shadow-2xs"
           />
         </div>
 
         {/* Status Filter Tabs */}
-        <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100/90 rounded-xl border border-slate-200/70 text-xs">
+        <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100/90 dark:bg-slate-800/90 rounded-xl border border-slate-200/70 dark:border-slate-700/70 text-xs">
           {(
             [
-              { key: 'ALL', label: 'All' },
-              { key: 'REPORTED', label: 'Reported' },
-              { key: 'IN_PROGRESS', label: 'In Progress' },
-              { key: 'RESOLVED', label: 'Resolved' },
-              { key: 'REOPENED', label: 'Reopened' },
+              { key: 'ALL', label: t('myreports.status_all') },
+              { key: 'REPORTED', label: t('myreports.status_reported') },
+              { key: 'IN_PROGRESS', label: t('myreports.status_in_progress') },
+              { key: 'RESOLVED', label: t('myreports.status_resolved') },
+              { key: 'REOPENED', label: t('myreports.status_reopened') },
             ] as const
           ).map((tab) => {
             const active = statusFilter === tab.key;
@@ -482,14 +482,14 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                 onClick={() => setStatusFilter(tab.key)}
                 className={`px-3 py-1.5 rounded-lg font-medium text-xs transition-all flex items-center gap-1.5 cursor-pointer select-none ${
                   active
-                    ? 'bg-white text-slate-900 shadow-2xs font-semibold'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-semibold'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50'
                 }`}
               >
                 <span>{tab.label}</span>
                 <span
                   className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                    active ? 'bg-slate-900 text-white' : 'bg-slate-200/80 text-slate-600'
+                    active ? 'bg-slate-900 dark:bg-blue-600 text-white' : 'bg-slate-200/80 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
                   }`}
                 >
                   {count}
@@ -501,29 +501,29 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
       </div>
 
       {errorMessage ? (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center text-xs text-red-700 space-y-3">
+        <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 rounded-xl p-6 text-center text-xs text-red-700 dark:text-red-300 space-y-3">
           <p className="font-semibold">{errorMessage}</p>
           {errorMessage.toLowerCase().includes('sign in') && (
             <button
               onClick={() => {
                 window.location.hash = 'login';
               }}
-              className="px-4 py-1.5 bg-slate-900 text-white rounded-lg font-medium text-xs cursor-pointer shadow-xs"
+              className="px-4 py-1.5 bg-slate-900 dark:bg-blue-600 text-white rounded-lg font-medium text-xs cursor-pointer shadow-xs"
             >
               {t('auth.login', 'Sign In')}
             </button>
           )}
         </div>
       ) : loading ? (
-        <div className="bg-white/70 backdrop-blur-xs rounded-xl p-8 text-center text-xs text-slate-500 border border-slate-200/80">
+        <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xs rounded-xl p-8 text-center text-xs text-slate-500 dark:text-slate-400 border border-slate-200/80 dark:border-slate-700/80">
           {t('myreports.loading')}
         </div>
       ) : filteredComplaints.length === 0 ? (
-        <div className="bg-white/70 backdrop-blur-xs rounded-xl p-8 text-center text-xs text-slate-500 border border-slate-200/80 space-y-3">
+        <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xs rounded-xl p-8 text-center text-xs text-slate-500 dark:text-slate-400 border border-slate-200/80 dark:border-slate-700/80 space-y-3">
           <p>{t('myreports.empty')}</p>
           <button
             onClick={onStartNewReport}
-            className="px-3.5 py-1.5 bg-slate-900 text-white font-medium rounded-lg text-xs cursor-pointer"
+            className="px-3.5 py-1.5 bg-slate-900 dark:bg-blue-600 text-white font-medium rounded-lg text-xs cursor-pointer shadow-xs"
           >
             {t('home.cta_button')}
           </button>
@@ -547,15 +547,15 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                       }, 50);
                     }
                   }}
-                  className={`bg-white rounded-xl p-3.5 border transition-all cursor-pointer ${
+                  className={`bg-white dark:bg-slate-800/90 rounded-xl p-3.5 border transition-all cursor-pointer ${
                     isSelected
-                      ? 'border-slate-900 ring-2 ring-slate-900/10 shadow-sm'
-                      : 'border-slate-200/90 hover:border-slate-300 shadow-xs'
+                      ? 'border-slate-900 dark:border-blue-500 ring-2 ring-slate-900/10 dark:ring-blue-500/20 shadow-sm'
+                      : 'border-slate-200/90 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 shadow-xs'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-semibold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">
+                      <span className="font-mono text-xs font-semibold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded">
                         {c.report_id}
                       </span>
                       <SeverityBadge severity={c.severity} size="sm" />
@@ -563,26 +563,26 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                     <StatusBadge status={c.status} />
                   </div>
 
-                  <div className="flex items-center gap-2 text-xs font-bold text-slate-900 mb-1">
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-slate-100 mb-1">
                     <ProblemIcon type={c.problem_type} size={15} />
                     <span>{getProblemLabel(c.problem_type, t)}</span>
                   </div>
 
-                  <div className="flex items-center gap-1 text-[11px] text-slate-500 truncate mb-2">
+                  <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 truncate mb-2">
                     <MapPin size={11} className="shrink-0 text-slate-400" />
                     <span className="truncate">{c.location_name}</span>
                   </div>
 
-                  <div className="flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-100">
-                    <span className="flex items-center gap-1 font-medium text-[10.5px] text-slate-600 bg-slate-100/90 px-2 py-0.5 rounded border border-slate-200/60 font-mono">
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-700/80">
+                    <span className="flex items-center gap-1 font-medium text-[10.5px] text-slate-600 dark:text-slate-300 bg-slate-100/90 dark:bg-slate-700/60 px-2 py-0.5 rounded border border-slate-200/60 dark:border-slate-600/60 font-mono">
                       <Clock size={11} className="text-slate-400" />
                       {getFactualResponseTime(c)}
                     </span>
                     <button
                       type="button"
-                      className="inline-flex items-center gap-1 font-semibold text-slate-800 hover:text-slate-950 text-[11px]"
+                      className="inline-flex items-center gap-1 font-semibold text-slate-800 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white text-[11px]"
                     >
-                      <span>View Details</span>
+                      <span>{t('myreports.view_details')}</span>
                       <ChevronRight size={12} />
                     </button>
                   </div>
@@ -595,15 +595,15 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
           {activeComplaint && (
             <div
               id="report-detail-view"
-              className="lg:col-span-7 bg-white rounded-xl border border-slate-200/90 p-5 space-y-5 shadow-xs sticky top-20"
+              className="lg:col-span-7 bg-white dark:bg-slate-800/95 rounded-xl border border-slate-200/90 dark:border-slate-700/90 p-5 space-y-5 shadow-xs sticky top-20"
             >
               {/* Header */}
-              <div className="flex items-start justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-start justify-between border-b border-slate-100 dark:border-slate-700/80 pb-3">
                 <div>
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    {t('myreports.dossier', 'Citizen Complaint Dossier')}
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                    {t('myreports.dossier')}
                   </div>
-                  <div className="text-base font-bold font-mono text-slate-900 mt-0.5">
+                  <div className="text-base font-bold font-mono text-slate-900 dark:text-white mt-0.5">
                     {activeComplaint.report_id}
                   </div>
                 </div>
@@ -611,18 +611,18 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                   <button
                     type="button"
                     onClick={handleShareStatus}
-                    className="px-2.5 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-medium rounded-lg transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
+                    className="px-2.5 py-1 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-xs font-medium rounded-lg transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
                     title="Share public verification link"
                   >
                     {copiedShare ? (
                       <>
-                        <Check size={12} className="text-emerald-600" />
-                        <span className="text-emerald-700 font-semibold text-[11px]">Link Copied!</span>
+                        <Check size={12} className="text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-emerald-700 dark:text-emerald-400 font-semibold text-[11px]">{t('myreports.link_copied')}</span>
                       </>
                     ) : (
                       <>
                         <Share2 size={12} />
-                        <span className="text-[11px]">Share Status</span>
+                        <span className="text-[11px]">{t('myreports.share_status')}</span>
                       </>
                     )}
                   </button>
@@ -635,14 +635,14 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                 <div
                   className={`p-3 rounded-lg text-xs font-medium border flex items-center justify-between gap-2 ${
                     actionFeedback.type === 'success'
-                      ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
-                      : 'bg-rose-50 text-rose-900 border-rose-200'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                      : 'bg-rose-50 dark:bg-rose-950/40 text-rose-900 dark:text-rose-300 border-rose-200 dark:border-rose-800'
                   }`}
                 >
                   <span>{actionFeedback.message}</span>
                   <button
                     onClick={() => setActionFeedback(null)}
-                    className="text-xs text-slate-500 hover:text-slate-800 font-bold px-1"
+                    className="text-xs text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-bold px-1"
                   >
                     ×
                   </button>
@@ -650,17 +650,17 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
               )}
 
               {/* 1. Data-Driven Lifecycle Timeline */}
-              <div className="bg-slate-50/80 rounded-xl p-4 border border-slate-200/80 space-y-3 font-sans">
-                <div className="flex items-center justify-between text-xs font-bold text-slate-800 uppercase tracking-wider">
-                  <span>Complaint Lifecycle Timeline</span>
-                  <span className="text-[10px] text-slate-400 font-normal font-mono">
+              <div className="bg-slate-50/80 dark:bg-slate-900/60 rounded-xl p-4 border border-slate-200/80 dark:border-slate-700/80 space-y-3 font-sans">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                  <span>{t('myreports.timeline')}</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal font-mono">
                     {historyItems.length > 0 ? `${historyItems.length} Real Lifecycle Events` : 'Audit Trail'}
                   </span>
                 </div>
 
                 <div className="space-y-3.5 pt-1">
                   {loadingHistory ? (
-                    <div className="text-center py-4 text-xs text-slate-500">
+                    <div className="text-center py-4 text-xs text-slate-500 dark:text-slate-400">
                       Loading authentic audit trail...
                     </div>
                   ) : historyItems.length > 0 ? (
@@ -679,7 +679,7 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                       return (
                         <div key={hist.id || idx} className="relative flex items-start gap-3">
                           {!isLast && (
-                            <div className="absolute left-2.5 top-6 bottom-0 w-0.5 -ml-[1px] bg-slate-300" />
+                            <div className="absolute left-2.5 top-6 bottom-0 w-0.5 -ml-[1px] bg-slate-300 dark:bg-slate-700" />
                           )}
 
                           {/* Node Icon */}
@@ -693,11 +693,11 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                                 <RotateCcw size={10} strokeWidth={2.5} />
                               </div>
                             ) : isLast ? (
-                              <div className="w-5 h-5 rounded-full bg-white border-2 border-slate-900 flex items-center justify-center">
-                                <div className="w-2 h-2 rounded-full bg-slate-900 animate-pulse" />
+                              <div className="w-5 h-5 rounded-full bg-white dark:bg-slate-800 border-2 border-slate-900 dark:border-blue-400 flex items-center justify-center">
+                                <div className="w-2 h-2 rounded-full bg-slate-900 dark:bg-blue-400 animate-pulse" />
                               </div>
                             ) : (
-                              <div className="w-5 h-5 rounded-full bg-slate-800 text-white flex items-center justify-center shadow-xs">
+                              <div className="w-5 h-5 rounded-full bg-slate-800 dark:bg-slate-700 text-white flex items-center justify-center shadow-xs">
                                 <Check size={10} strokeWidth={2.5} />
                               </div>
                             )}
@@ -708,23 +708,23 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                             <div className="flex items-baseline justify-between gap-2">
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <StatusBadge status={hist.new_status as ComplaintStatus} />
-                                <span className="text-[10px] text-slate-500 font-medium">
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
                                   by {roleLabel}
                                 </span>
                               </div>
-                              <span className="text-[10px] text-slate-400 font-mono shrink-0">
+                              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono shrink-0">
                                 {formatDateTime(hist.created_at)}
                               </span>
                             </div>
 
                             {hist.note && (
-                              <p className="text-[11.5px] mt-1 text-slate-700 leading-snug">
+                              <p className="text-[11.5px] mt-1 text-slate-700 dark:text-slate-300 leading-snug">
                                 {hist.note}
                               </p>
                             )}
 
                             {isResolvedEvent && activeComplaint.resolution_image_url && (
-                              <div className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                              <div className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded">
                                 <CheckCircle2 size={11} />
                                 <span>Resolution evidence photograph attached</span>
                               </div>
@@ -741,23 +741,23 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                           {!isLast && (
                             <div
                               className={`absolute left-2.5 top-6 bottom-0 w-0.5 -ml-[1px] ${
-                                stage.status === 'completed' ? 'bg-slate-700' : 'bg-slate-200'
+                                stage.status === 'completed' ? 'bg-slate-700 dark:bg-slate-600' : 'bg-slate-200 dark:bg-slate-700'
                               }`}
                             />
                           )}
 
                           <div className="relative z-10 shrink-0 mt-0.5">
                             {stage.status === 'completed' ? (
-                              <div className="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-xs">
+                              <div className="w-5 h-5 rounded-full bg-slate-900 dark:bg-blue-600 text-white flex items-center justify-center shadow-xs">
                                 <Check size={11} strokeWidth={3} />
                               </div>
                             ) : stage.status === 'current' ? (
-                              <div className="w-5 h-5 rounded-full bg-white border-2 border-slate-900 flex items-center justify-center">
-                                <div className="w-2 h-2 rounded-full bg-slate-900 animate-pulse" />
+                              <div className="w-5 h-5 rounded-full bg-white dark:bg-slate-800 border-2 border-slate-900 dark:border-blue-400 flex items-center justify-center">
+                                <div className="w-2 h-2 rounded-full bg-slate-900 dark:bg-blue-400 animate-pulse" />
                               </div>
                             ) : (
-                              <div className="w-5 h-5 rounded-full bg-white border border-slate-300 flex items-center justify-center">
-                                <Circle size={8} className="text-slate-300" />
+                              <div className="w-5 h-5 rounded-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 flex items-center justify-center">
+                                <Circle size={8} className="text-slate-300 dark:text-slate-600" />
                               </div>
                             )}
                           </div>
@@ -767,16 +767,16 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                               <span
                                 className={`text-xs font-semibold ${
                                   stage.status === 'completed'
-                                    ? 'text-slate-900'
+                                    ? 'text-slate-900 dark:text-white'
                                     : stage.status === 'current'
-                                    ? 'text-slate-950 font-bold'
-                                    : 'text-slate-400'
+                                    ? 'text-slate-950 dark:text-slate-100 font-bold'
+                                    : 'text-slate-400 dark:text-slate-500'
                                 }`}
                               >
                                 {stage.title}
                               </span>
                               {stage.status === 'current' && (
-                                <span className="text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded uppercase">
+                                <span className="text-[9px] font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 px-1.5 py-0.2 rounded uppercase">
                                   Current
                                 </span>
                               )}
@@ -784,16 +784,16 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                             <p
                               className={`text-[11px] mt-0.5 leading-snug ${
                                 stage.status === 'completed'
-                                  ? 'text-slate-600'
+                                  ? 'text-slate-600 dark:text-slate-400'
                                   : stage.status === 'current'
-                                  ? 'text-slate-700'
-                                  : 'text-slate-400'
+                                  ? 'text-slate-700 dark:text-slate-300'
+                                  : 'text-slate-400 dark:text-slate-500'
                               }`}
                             >
                               {stage.subtitle}
                             </p>
                             {stage.note && (
-                              <p className="text-[11px] mt-1 text-slate-800 bg-white border border-slate-200/90 rounded p-1.5 font-mono">
+                              <p className="text-[11px] mt-1 text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 rounded p-1.5 font-mono">
                                 {stage.note}
                               </p>
                             )}
@@ -806,89 +806,89 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
               </div>
 
               {/* 2. Status Details Grid */}
-              <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-200/70 space-y-3 font-sans">
-                <div className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                  Status Details
+              <div className="bg-slate-50/50 dark:bg-slate-900/40 rounded-xl p-4 border border-slate-200/70 dark:border-slate-700/70 space-y-3 font-sans">
+                <div className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                  {t('myreports.status_details')}
                 </div>
                 <div className="grid grid-cols-2 gap-3.5 text-xs">
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">Report ID</span>
-                    <span className="font-mono font-bold text-slate-900">{activeComplaint.report_id}</span>
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block font-semibold">{t('report.report_id')}</span>
+                    <span className="font-mono font-bold text-slate-900 dark:text-white">{activeComplaint.report_id}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">Current Status</span>
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block font-semibold">{t('myreports.current_status')}</span>
                     <div className="mt-0.5">
                       <StatusBadge status={activeComplaint.status} />
                     </div>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">Problem Type</span>
-                    <div className="flex items-center gap-1.5 font-bold text-slate-900 mt-0.5">
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block font-semibold">{t('myreports.problem_type')}</span>
+                    <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-slate-100 mt-0.5">
                       <ProblemIcon type={activeComplaint.problem_type} size={15} />
                       <span>{getProblemLabel(activeComplaint.problem_type, t)}</span>
                     </div>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">Visual Severity</span>
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block font-semibold">{t('report.visual_severity')}</span>
                     <div className="mt-0.5">
                       <SeverityBadge severity={activeComplaint.severity} showSubtitle />
                     </div>
-                    <span className="text-[10px] text-slate-500 block mt-1">Severity is an AI-assisted visual estimate.</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block mt-1">Severity is an AI-assisted visual estimate.</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">Responsible Department</span>
-                    <span className="font-medium text-slate-800 block mt-0.5">{activeComplaint.department}</span>
-                    <span className="text-[10px] text-slate-500 block mt-1">Final complaint routing can be reviewed or changed by the citizen.</span>
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block font-semibold">{t('myreports.responsible_dept')}</span>
+                    <span className="font-medium text-slate-800 dark:text-slate-200 block mt-0.5">{activeComplaint.department}</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block mt-1">Final complaint routing can be reviewed or changed by the citizen.</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">Response Time</span>
-                    <span className="font-semibold text-slate-800 block mt-0.5 font-mono">
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block font-semibold">{t('myreports.response_time')}</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 block mt-0.5 font-mono">
                       {getFactualResponseTime(activeComplaint) || 'Under review'}
                     </span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">Submission Date</span>
-                    <span className="text-slate-700 block mt-0.5">{formatDateTime(activeComplaint.created_at)}</span>
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block font-semibold">{t('myreports.submission_date')}</span>
+                    <span className="text-slate-700 dark:text-slate-300 block mt-0.5">{formatDateTime(activeComplaint.created_at)}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">Last Updated</span>
-                    <span className="text-slate-700 block mt-0.5">
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block font-semibold">{t('myreports.last_updated')}</span>
+                    <span className="text-slate-700 dark:text-slate-300 block mt-0.5">
                       {formatDateTime(activeComplaint.updated_at || activeComplaint.created_at)}
                     </span>
                   </div>
                   <div className="col-span-2">
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">Location</span>
-                    <span className="text-slate-800 block mt-0.5 font-medium">{activeComplaint.location_name}</span>
-                    <span className="font-mono text-slate-500 text-[10px]">
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block font-semibold">{t('myreports.location')}</span>
+                    <span className="text-slate-800 dark:text-slate-200 block mt-0.5 font-medium">{activeComplaint.location_name}</span>
+                    <span className="font-mono text-slate-500 dark:text-slate-400 text-[10px]">
                       GPS: {activeComplaint.latitude.toFixed(4)}, {activeComplaint.longitude.toFixed(4)}
                     </span>
                   </div>
                 </div>
 
                 {activeComplaint.description && (
-                  <div className="pt-2 border-t border-slate-200/60 text-xs">
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold mb-0.5">
-                      Citizen Observation
+                  <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 text-xs">
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block font-semibold mb-0.5">
+                      {t('myreports.citizen_observation')}
                     </span>
-                    <p className="text-slate-700 leading-relaxed">{activeComplaint.description}</p>
+                    <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{activeComplaint.description}</p>
                   </div>
                 )}
               </div>
 
               {/* 3. Duplicate / Similar Complaints Notice */}
               {activeComplaint.duplicate_of && (
-                <div className="bg-blue-50/80 border border-blue-200/90 rounded-xl p-4 text-xs space-y-2.5">
-                  <div className="flex items-center gap-2 text-blue-900 font-bold">
-                    <Layers size={16} className="text-blue-700 shrink-0" />
-                    <span>Similar issue already reported nearby</span>
+                <div className="bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200/90 dark:border-blue-800/80 rounded-xl p-4 text-xs space-y-2.5">
+                  <div className="flex items-center gap-2 text-blue-900 dark:text-blue-300 font-bold">
+                    <Layers size={16} className="text-blue-700 dark:text-blue-400 shrink-0" />
+                    <span>{t('myreports.similar_issue_nearby')}</span>
                   </div>
-                  <p className="text-[11px] text-blue-800 leading-relaxed">
+                  <p className="text-[11px] text-blue-800 dark:text-blue-200 leading-relaxed">
                     This issue may already have been reported by another citizen. You can continue viewing your report. Multiple citizen reports help authorities understand the scale of the problem.
                   </p>
 
-                  <div className="bg-white/90 border border-blue-200 rounded-lg p-3 space-y-1.5 shadow-2xs">
+                  <div className="bg-white/90 dark:bg-slate-800/90 border border-blue-200 dark:border-blue-800 rounded-lg p-3 space-y-1.5 shadow-2xs">
                     <div className="flex items-center justify-between">
-                      <span className="font-mono font-bold text-slate-900 text-xs">
+                      <span className="font-mono font-bold text-slate-900 dark:text-slate-100 text-xs">
                         Existing Report: {activeComplaint.duplicate_of}
                       </span>
                       {duplicateSummary && (
@@ -897,20 +897,20 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                     </div>
 
                     {loadingDuplicateSummary ? (
-                      <div className="text-[10px] text-slate-400">Loading public summary...</div>
+                      <div className="text-[10px] text-slate-400 dark:text-slate-500">Loading public summary...</div>
                     ) : duplicateSummary ? (
-                      <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600 pt-1.5 border-t border-slate-100">
+                      <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600 dark:text-slate-300 pt-1.5 border-t border-slate-100 dark:border-slate-700">
                         <div>
-                          <span className="text-[10px] text-slate-400 block font-semibold">Category:</span>
-                          <span className="capitalize font-medium text-slate-800">{duplicateSummary.problem_type}</span>
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500 block font-semibold">Category:</span>
+                          <span className="capitalize font-medium text-slate-800 dark:text-slate-200">{duplicateSummary.problem_type}</span>
                         </div>
                         <div>
-                          <span className="text-[10px] text-slate-400 block font-semibold">Approximate Area:</span>
-                          <span className="truncate font-medium text-slate-800 block">{duplicateSummary.location_name}</span>
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500 block font-semibold">Approximate Area:</span>
+                          <span className="truncate font-medium text-slate-800 dark:text-slate-200 block">{duplicateSummary.location_name}</span>
                         </div>
                       </div>
                     ) : (
-                      <div className="text-[10px] text-slate-500">
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">
                         Civic report registered in the proximate corridor.
                       </div>
                     )}
@@ -920,18 +920,18 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
 
               {/* 4. Before / After Resolution Evidence */}
               {activeComplaint.resolution_image_url ? (
-                <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-2">
                     <div>
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
-                        Resolution Evidence
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                        {t('myreports.resolution_evidence')}
                       </h3>
-                      <p className="text-[11px] text-slate-500">
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
                         Official verification photography provided by municipal team.
                       </p>
                     </div>
                     {activeComplaint.resolved_at && (
-                      <span className="text-[10px] text-slate-500 font-mono">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
                         {formatDateTime(activeComplaint.resolved_at)}
                       </span>
                     )}
@@ -940,11 +940,11 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Before Image */}
                     <div className="space-y-1.5">
-                      <div className="flex items-center justify-between text-xs font-semibold text-slate-800">
-                        <span>Before Resolution</span>
-                        <span className="text-[10px] text-slate-400 font-normal">Original Citizen Photo</span>
+                      <div className="flex items-center justify-between text-xs font-semibold text-slate-800 dark:text-slate-200">
+                        <span>{t('myreports.before_resolution')}</span>
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">Original Citizen Photo</span>
                       </div>
-                      <div className="h-44 w-full rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
+                      <div className="h-44 w-full rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600">
                         <img
                           src={getControlledImageUrl(activeComplaint.image_url)}
                           alt="Before Resolution"
@@ -955,11 +955,11 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
 
                     {/* After Image */}
                     <div className="space-y-1.5">
-                      <div className="flex items-center justify-between text-xs font-semibold text-slate-800">
-                        <span>After Resolution</span>
-                        <span className="text-[10px] text-emerald-700 font-semibold">Authority Work Photo</span>
+                      <div className="flex items-center justify-between text-xs font-semibold text-slate-800 dark:text-slate-200">
+                        <span>{t('myreports.after_resolution')}</span>
+                        <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-semibold">Authority Work Photo</span>
                       </div>
-                      <div className="h-44 w-full rounded-lg overflow-hidden bg-slate-100 border border-emerald-200">
+                      <div className="h-44 w-full rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 border border-emerald-200 dark:border-emerald-800">
                         <img
                           src={getControlledImageUrl(activeComplaint.resolution_image_url)}
                           alt="After Resolution"
@@ -972,8 +972,8 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
               ) : (
                 /* Single Citizen Photo preview when not yet resolved with evidence */
                 <div className="space-y-1.5">
-                  <div className="text-xs font-semibold text-slate-700">Citizen Evidence Photograph</div>
-                  <div className="h-48 w-full rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
+                  <div className="text-xs font-semibold text-slate-700 dark:text-slate-300">Citizen Evidence Photograph</div>
+                  <div className="h-48 w-full rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600">
                     <img
                       src={getControlledImageUrl(activeComplaint.image_url)}
                       alt={activeComplaint.problem_type}
@@ -986,15 +986,15 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
               {/* 5. Citizen Status Follow-Up Request */}
               {activeComplaint.status !== 'RESOLVED' &&
                 !activeComplaint.citizen_resolution_confirmed && (
-                  <div className="bg-slate-50/80 border border-slate-200/90 rounded-xl p-4 space-y-3 font-sans">
+                  <div className="bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/90 dark:border-slate-700/80 rounded-xl p-4 space-y-3 font-sans">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <MessageSquare size={15} className="text-slate-700" />
-                        <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                          Follow-Up with Authority
+                        <MessageSquare size={15} className="text-slate-700 dark:text-slate-300" />
+                        <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                          {t('myreports.follow_up_title')}
                         </h4>
                       </div>
-                      <span className="text-[10px] text-slate-500 font-medium">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
                         48h cooldown protection
                       </span>
                     </div>
@@ -1003,8 +1003,8 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                       <div
                         className={`p-2.5 rounded-lg text-xs font-medium ${
                           statusRequestFeedback.type === 'success'
-                            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                            : 'bg-rose-50 text-rose-800 border border-rose-200'
+                            ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                            : 'bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
                         }`}
                       >
                         {statusRequestFeedback.message}
@@ -1013,33 +1013,33 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
 
                     {/* Pending Request Banner */}
                     {statusRequests.some((r) => r.status === 'PENDING') ? (
-                      <div className="p-3 bg-amber-50/80 border border-amber-200/80 rounded-lg text-xs space-y-1">
-                        <div className="flex items-center gap-1.5 font-semibold text-amber-900">
-                          <Clock size={13} className="text-amber-700" />
+                      <div className="p-3 bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/80 rounded-lg text-xs space-y-1">
+                        <div className="flex items-center gap-1.5 font-semibold text-amber-900 dark:text-amber-300">
+                          <Clock size={13} className="text-amber-700 dark:text-amber-400" />
                           <span>Status Update Request Pending</span>
                         </div>
-                        <p className="text-[11px] text-amber-800 leading-snug">
+                        <p className="text-[11px] text-amber-800 dark:text-amber-200 leading-snug">
                           Your follow-up request has been transmitted to {activeComplaint.department}. The department is reviewing progress.
                         </p>
                       </div>
                     ) : !showStatusRequestForm ? (
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-                        <p className="text-[11px] text-slate-600 leading-snug">
+                        <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-snug">
                           Has this issue stalled? You can send an official follow-up note to {activeComplaint.department}.
                         </p>
                         <button
                           type="button"
                           onClick={() => setShowStatusRequestForm(true)}
-                          className="self-start sm:self-auto shrink-0 px-3.5 py-1.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 font-medium text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                          className="self-start sm:self-auto shrink-0 px-3.5 py-1.5 bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 border border-slate-300 dark:border-slate-600 font-medium text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs"
                         >
                           <Send size={12} />
-                          <span>Request Update</span>
+                          <span>{t('myreports.request_update')}</span>
                         </button>
                       </div>
                     ) : (
-                      <div className="space-y-2.5 pt-2 border-t border-slate-200">
+                      <div className="space-y-2.5 pt-2 border-t border-slate-200 dark:border-slate-700">
                         <div>
-                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                          <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
                             Optional note for municipal authorities (max 300 characters):
                           </label>
                           <textarea
@@ -1048,9 +1048,9 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                             placeholder="e.g. Danger to morning school buses; please expedite road patch..."
                             rows={2}
                             maxLength={300}
-                            className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:border-slate-500"
+                            className="w-full text-xs p-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-hidden focus:border-slate-500"
                           />
-                          <div className="text-[10px] text-slate-400 text-right">
+                          <div className="text-[10px] text-slate-400 dark:text-slate-500 text-right">
                             {statusRequestMessage.length}/300
                           </div>
                         </div>
@@ -1060,7 +1060,7 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                             type="button"
                             onClick={handleRequestStatusUpdate}
                             disabled={submittingStatusRequest}
-                            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50 shadow-xs"
+                            className="px-4 py-2 bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-700 text-white font-medium text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50 shadow-xs"
                           >
                             <Send size={13} />
                             <span>{submittingStatusRequest ? 'Submitting...' : 'Send Follow-Up'}</span>
@@ -1069,7 +1069,7 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                             type="button"
                             onClick={() => setShowStatusRequestForm(false)}
                             disabled={submittingStatusRequest}
-                            className="px-3 py-2 text-slate-600 hover:text-slate-800 text-xs font-medium cursor-pointer"
+                            className="px-3 py-2 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 text-xs font-medium cursor-pointer"
                           >
                             Cancel
                           </button>
@@ -1079,35 +1079,35 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
 
                     {/* Past status update requests log */}
                     {statusRequests.length > 0 && (
-                      <div className="pt-2 border-t border-slate-200/60 space-y-1.5">
-                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                      <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 space-y-1.5">
+                        <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
                           Follow-up Inquiries ({statusRequests.length})
                         </span>
                         <div className="space-y-1 max-h-32 overflow-y-auto">
                           {statusRequests.map((req) => (
                             <div
                               key={req.id}
-                              className="p-2 bg-white rounded-lg border border-slate-200 text-[11px] flex items-start justify-between gap-2"
+                              className="p-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 text-[11px] flex items-start justify-between gap-2"
                             >
                               <div className="space-y-0.5 min-w-0">
                                 <div className="flex items-center gap-1.5">
                                   <span
                                     className={`px-1.5 py-0.2 rounded text-[9.5px] font-bold ${
                                       req.status === 'PENDING'
-                                        ? 'bg-amber-100 text-amber-800'
+                                        ? 'bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300'
                                         : req.status === 'RESPONDED'
-                                        ? 'bg-emerald-100 text-emerald-800'
-                                        : 'bg-slate-100 text-slate-700'
+                                        ? 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300'
+                                        : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
                                     }`}
                                   >
                                     {req.status}
                                   </span>
-                                  <span className="text-[10px] text-slate-400 font-mono">
+                                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">
                                     {formatDateTime(req.created_at)}
                                   </span>
                                 </div>
                                 {req.message && (
-                                  <p className="text-slate-700 italic truncate max-w-xs">
+                                  <p className="text-slate-700 dark:text-slate-300 italic truncate max-w-xs">
                                     "{req.message}"
                                   </p>
                                 )}
@@ -1124,17 +1124,17 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
               {activeComplaint.status === 'RESOLVED' &&
                 !activeComplaint.citizen_resolution_confirmed &&
                 !activeComplaint.citizen_reopened && (
-                  <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-4 space-y-3 font-sans">
+                  <div className="bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 rounded-xl p-4 space-y-3 font-sans">
                     <div className="flex items-start gap-2.5">
-                      <AlertTriangle size={18} className="text-amber-700 shrink-0 mt-0.5" />
+                      <AlertTriangle size={18} className="text-amber-700 dark:text-amber-400 shrink-0 mt-0.5" />
                       <div className="space-y-0.5">
-                        <h4 className="text-xs font-bold text-amber-950">
+                        <h4 className="text-xs font-bold text-amber-950 dark:text-amber-200">
                           Authority marked this issue as resolved. Please verify whether the issue has actually been fixed.
                         </h4>
-                        <p className="text-[11px] text-amber-900 leading-snug">
+                        <p className="text-[11px] text-amber-900 dark:text-amber-300 leading-snug">
                           Your verification directly impacts civic accountability. Confirm if field repairs are satisfactory or request reopening if the problem persists.
                         </p>
-                        <span className="text-[10px] text-amber-800/90 block pt-0.5">
+                        <span className="text-[10px] text-amber-800/90 dark:text-amber-400/90 block pt-0.5">
                           Resolution is marked complete after authority action and may be reopened if the issue persists.
                         </span>
                       </div>
@@ -1149,25 +1149,25 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                           className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs disabled:opacity-50"
                         >
                           <Check size={14} />
-                          {confirming ? 'Confirming...' : 'Confirm Resolution'}
+                          {confirming ? 'Confirming...' : t('myreports.confirm_resolution')}
                         </button>
                         <button
                           type="button"
                           onClick={() => setShowReopenForm(true)}
                           disabled={confirming}
-                          className="px-4 py-2 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 font-medium text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
+                          className="px-4 py-2 bg-white dark:bg-slate-800 hover:bg-amber-100 dark:hover:bg-slate-700 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700 font-medium text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
                         >
                           <RotateCcw size={14} />
-                          Issue Still Exists
+                          {t('myreports.issue_still_exists')}
                         </button>
                       </div>
                     ) : (
-                      <div className="space-y-2.5 pt-2 border-t border-amber-200/80">
-                        <div className="text-[11px] font-semibold text-amber-950">
+                      <div className="space-y-2.5 pt-2 border-t border-amber-200/80 dark:border-amber-800/80">
+                        <div className="text-[11px] font-semibold text-amber-950 dark:text-amber-200">
                           The issue is still present. We will notify the responsible authority.
                         </div>
                         <div>
-                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                          <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
                             Describe what is still wrong (reason for reopening):
                           </label>
                           <textarea
@@ -1175,7 +1175,7 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                             onChange={(e) => setReopenReason(e.target.value)}
                             placeholder="e.g. Patch is broken, debris remains on roadway, light is still non-functional..."
                             rows={2}
-                            className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:border-slate-500"
+                            className="w-full text-xs p-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-hidden focus:border-slate-500"
                           />
                         </div>
                         <div className="flex items-center gap-2">
@@ -1192,7 +1192,7 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                             type="button"
                             onClick={() => setShowReopenForm(false)}
                             disabled={reopening}
-                            className="px-3 py-2 text-slate-600 hover:text-slate-800 text-xs font-medium cursor-pointer"
+                            className="px-3 py-2 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 text-xs font-medium cursor-pointer"
                           >
                             Cancel
                           </button>
@@ -1204,13 +1204,13 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
 
               {/* Citizen Verified State Notice */}
               {activeComplaint.citizen_resolution_confirmed && (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 flex items-start gap-2.5 text-xs text-emerald-900 font-sans">
-                  <CheckCircle2 size={17} className="text-emerald-600 shrink-0 mt-0.5" />
+                <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 rounded-xl p-3.5 flex items-start gap-2.5 text-xs text-emerald-900 dark:text-emerald-300 font-sans">
+                  <CheckCircle2 size={17} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-bold block text-emerald-950">
+                    <span className="font-bold block text-emerald-950 dark:text-emerald-200">
                       Resolution confirmed
                     </span>
-                    <span className="text-[11px] text-emerald-700">
+                    <span className="text-[11px] text-emerald-700 dark:text-emerald-400">
                       Citizen confirmation recorded on {formatDateTime(activeComplaint.citizen_resolution_confirmed_at || activeComplaint.updated_at)}. This complaint has reached final verified resolution.
                     </span>
                   </div>
@@ -1219,14 +1219,14 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
 
               {/* Reopened State Notice */}
               {(activeComplaint.status === 'REOPENED' || activeComplaint.citizen_reopened) && (
-                <div className="bg-rose-50 border border-rose-200 rounded-xl p-3.5 flex items-start gap-2.5 text-xs text-rose-950 font-sans">
-                  <RotateCcw size={17} className="text-rose-600 shrink-0 mt-0.5" />
+                <div className="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/80 rounded-xl p-3.5 flex items-start gap-2.5 text-xs text-rose-950 dark:text-rose-300 font-sans">
+                  <RotateCcw size={17} className="text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
                   <div className="space-y-0.5">
-                    <span className="font-bold block text-rose-950">Complaint reopened</span>
-                    <p className="text-[11.5px] text-rose-900 leading-snug">
+                    <span className="font-bold block text-rose-950 dark:text-rose-200">Complaint reopened</span>
+                    <p className="text-[11.5px] text-rose-900 dark:text-rose-300 leading-snug">
                       Citizen submitted reason: <span className="font-semibold italic">"{activeComplaint.reopen_reason || 'Civic issue still exists at the location.'}"</span>
                     </p>
-                    <span className="text-[10px] text-rose-700 block font-mono mt-1">
+                    <span className="text-[10px] text-rose-700 dark:text-rose-400 block font-mono mt-1">
                       Reopened on {formatDateTime(activeComplaint.citizen_reopened_at || activeComplaint.updated_at)}. Assigned department has been notified to re-inspect.
                     </span>
                   </div>

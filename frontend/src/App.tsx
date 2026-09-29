@@ -170,10 +170,10 @@ export function App() {
   // Prevent flash of protected content while initial session restores
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-600 font-sans">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-300 font-sans">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-[#0B2545]" />
-          <span className="text-xs font-semibold text-slate-500">
+          <Loader2 className="w-8 h-8 animate-spin text-[#0B2545] dark:text-blue-400" />
+          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
             Initializing NagarDrishti AI...
           </span>
         </div>
@@ -182,7 +182,7 @@ export function App() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAFBFD] text-slate-900 font-sans antialiased">
+    <div className="min-h-screen flex flex-col bg-[#FAFBFD] dark:bg-[#171513] text-slate-900 dark:text-slate-100 font-sans antialiased transition-colors duration-200">
       {/* Top Header Navbar */}
       <Navbar currentView={currentView} onNavigate={navigateTo} />
 

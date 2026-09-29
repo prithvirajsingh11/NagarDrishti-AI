@@ -5,7 +5,7 @@ export const AshokaEmblem: React.FC<{ className?: string }> = ({ className = '' 
   <div className={`flex items-center gap-2.5 select-none ${className}`}>
     <svg
       viewBox="0 0 100 130"
-      className="w-7 h-9 text-slate-800 shrink-0"
+      className="w-7 h-9 text-slate-800 dark:text-slate-100 shrink-0"
       fill="currentColor"
       aria-label="National Emblem of India"
     >
@@ -50,8 +50,8 @@ export const AshokaEmblem: React.FC<{ className?: string }> = ({ className = '' 
       <path d="M24 114 C35 116 65 116 76 114 L73 120 C60 122 40 122 27 120 Z" opacity="0.75" />
     </svg>
     <div className="flex flex-col justify-center leading-tight">
-      <span className="text-[11px] font-semibold text-slate-800 tracking-tight">भारत सरकार</span>
-      <span className="text-[10px] font-medium text-slate-600 tracking-tight">Government of India</span>
+      <span className="text-[11px] font-semibold text-slate-800 dark:text-slate-100 tracking-tight">भारत सरकार</span>
+      <span className="text-[10px] font-medium text-slate-600 dark:text-slate-300 tracking-tight">Government of India</span>
     </div>
   </div>
 );

@@ -1,6 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
   :root {
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -14,23 +16,80 @@
     margin: 0;
     font-family: var(--font-sans);
     color: #0f172a;
-    background-color: #fafbfc;
-    /* Subtle minimalist Indian flag ambient gradient */
+    background-color: #faf9f6;
+    /* Subtle minimalist Indian flag ambient gradient on creamy-white surface */
     background-image: 
-      radial-gradient(130% 40% at 50% -5%, rgba(255, 153, 51, 0.08) 0%, rgba(255, 255, 255, 0) 100%),
-      radial-gradient(130% 40% at 50% 105%, rgba(19, 136, 8, 0.07) 0%, rgba(255, 255, 255, 0) 100%);
+      radial-gradient(130% 40% at 50% -5%, rgba(255, 153, 51, 0.08) 0%, rgba(250, 249, 246, 0) 100%),
+      radial-gradient(130% 40% at 50% 105%, rgba(19, 136, 8, 0.07) 0%, rgba(250, 249, 246, 0) 100%);
     background-attachment: fixed;
     background-repeat: no-repeat;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Luxurious Creamy Warm Dark Mode */
+  html.dark body {
+    color: #f7ede2;
+    background-color: #171513; /* Deep creamy roasted espresso */
+    background-image: 
+      radial-gradient(130% 40% at 50% -5%, rgba(245, 166, 35, 0.08) 0%, rgba(23, 21, 19, 0) 100%),
+      radial-gradient(130% 40% at 50% 105%, rgba(34, 197, 94, 0.05) 0%, rgba(23, 21, 19, 0) 100%);
+  }
+
+  /* Remap slate tokens in dark mode to warm velvety creamy hues */
+  html.dark {
+    --color-slate-950: #12100f;
+    --color-slate-900: #1a1715; /* Base creamy dark surface */
+    --color-slate-850: #201c19;
+    --color-slate-800: #24201d; /* Elevated creamy card */
+    --color-slate-750: #2c2622;
+    --color-slate-700: #38312b; /* Warm creamy border */
+    --color-slate-650: #463d36;
+    --color-slate-600: #574c43;
+    --color-slate-500: #88786a; /* Warm stone secondary */
+    --color-slate-400: #b5a494; /* Soft warm beige text */
+    --color-slate-300: #d4c5b5; /* Creamy latte text */
+    --color-slate-200: #ebe0d3; /* Light cream text */
+    --color-slate-100: #f5ece1; /* Rich warm ivory */
+    --color-slate-50:  #faf5ee; /* Pure warm cream */
+
+    /* Warm creamy scrollbar */
+    scrollbar-color: #38312b #1a1715;
   }
 }
 
-/* Leaflet map styles */
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+html.dark ::-webkit-scrollbar-thumb {
+  background: #38312b;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #574c43;
+}
+
+/* Leaflet map styles with warm creamy night filter in dark mode */
 .leaflet-container {
   width: 100%;
   height: 100%;
   border-radius: 0.75rem;
   z-index: 10;
+}
+
+html.dark .leaflet-tile {
+  filter: brightness(0.78) invert(1) contrast(2.3) hue-rotate(170deg) sepia(0.38) saturate(0.85);
 }

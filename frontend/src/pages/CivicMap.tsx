@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import L from 'leaflet';
-import { Filter, Loader2, RefreshCw, ShieldCheck, MapPin } from 'lucide-react';
+import { Filter, Loader2, RefreshCw, ShieldCheck, MapPin, Crosshair, RotateCcw } from 'lucide-react';
 import type { NearbyCivicIssue, ProblemType } from '../types/complaint';
 import { getNearbyCivicIssues } from '../services/api';
 import { getProblemLabel } from '../components/ProblemIcon';
@@ -11,7 +11,7 @@ const DEFAULT_CENTER: [number, number] = [23.2599, 77.4126]; // Bhopal center
 const createPinIcon = (color: string) =>
   L.divIcon({
     className: 'custom-leaflet-marker',
-    html: `<div style="background-color: ${color}; width: 22px; height: 22px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;"><div style="width: 6px; height: 6px; background: white; border-radius: 50%;"></div></div>`,
+    html: `<div style="background-color: ${color}; width: 22px; height: 22px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; cursor: pointer;"><div style="width: 6px; height: 6px; background: white; border-radius: 50%;"></div></div>`,
     iconSize: [22, 22],
     iconAnchor: [11, 11],
   });
@@ -21,11 +21,14 @@ export const CivicMap: React.FC<{ onReportNew?: () => void }> = ({ onReportNew }
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
+  const markersMapRef = useRef<Map<string, L.Marker>>(new Map());
 
   const [issues, setIssues] = useState<NearbyCivicIssue[]>([]);
   const [loading, setLoading] = useState(true);
+  const [gpsLocating, setGpsLocating] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
+  const [activeIssueId, setActiveIssueId] = useState<string | null>(null);
 
   const fetchIssues = useCallback(() => {
     setLoading(true);
@@ -75,6 +78,7 @@ export const CivicMap: React.FC<{ onReportNew?: () => void }> = ({ onReportNew }
     if (!mapInstanceRef.current || !markersLayerRef.current) return;
 
     markersLayerRef.current.clearLayers();
+    markersMapRef.current.clear();
 
     issues.forEach((item) => {
       const color =
@@ -132,26 +136,66 @@ export const CivicMap: React.FC<{ onReportNew?: () => void }> = ({ onReportNew }
       `;
 
       marker.bindPopup(popupHtml);
+      marker.on('click', () => {
+        setActiveIssueId(item.id || item.report_id);
+      });
+
       markersLayerRef.current?.addLayer(marker);
+      markersMapRef.current.set(item.id || item.report_id, marker);
     });
   }, [issues, t]);
 
+  // Pan to user's real GPS position
+  const handleLocateMe = () => {
+    if (!navigator.geolocation || !mapInstanceRef.current) return;
+    setGpsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setGpsLocating(false);
+        const { latitude, longitude } = pos.coords;
+        mapInstanceRef.current?.flyTo([latitude, longitude], 15, { duration: 1.5 });
+      },
+      () => {
+        setGpsLocating(false);
+      },
+      { timeout: 8000 }
+    );
+  };
+
+  // Reset to default city view
+  const handleResetView = () => {
+    mapInstanceRef.current?.flyTo(DEFAULT_CENTER, 13, { duration: 1.2 });
+  };
+
+  // Focus specific incident pin from the carousel
+  const handleFocusIssue = (item: NearbyCivicIssue) => {
+    const key = item.id || item.report_id;
+    setActiveIssueId(key);
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.flyTo([item.latitude, item.longitude], 16, { duration: 1 });
+      const marker = markersMapRef.current.get(key);
+      if (marker) {
+        marker.openPopup();
+      }
+    }
+  };
+
   return (
-    <div className="space-y-4 font-sans select-none">
+    <div className="space-y-4 font-sans select-none max-w-5xl mx-auto">
       {/* Map Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/80">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/80 dark:border-slate-800">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-              City Civic Map
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+              {t('map.title')}
             </h1>
-            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
               <ShieldCheck size={12} />
-              Privacy Safe
+              {t('map.privacy_safe')}
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Geospatial visualization of civic reports across wards. Coordinates approximate to protect citizen privacy.
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            {t('map.subtitle')}
           </p>
         </div>
 
@@ -160,7 +204,7 @@ export const CivicMap: React.FC<{ onReportNew?: () => void }> = ({ onReportNew }
           <button
             type="button"
             onClick={fetchIssues}
-            className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors cursor-pointer"
+            className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
             title="Refresh map data"
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
@@ -171,9 +215,9 @@ export const CivicMap: React.FC<{ onReportNew?: () => void }> = ({ onReportNew }
             <button
               type="button"
               onClick={onReportNew}
-              className="px-3.5 py-1.5 bg-[#0B2545] hover:bg-[#07192f] text-white text-xs font-semibold rounded-xl transition-colors cursor-pointer shadow-xs"
+              className="px-3.5 py-1.5 bg-[#0B2545] dark:bg-blue-600 hover:bg-[#07192f] dark:hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-colors cursor-pointer shadow-xs"
             >
-              + Report Issue
+              + {t('nav.report_issue')}
             </button>
           )}
         </div>
@@ -182,66 +226,137 @@ export const CivicMap: React.FC<{ onReportNew?: () => void }> = ({ onReportNew }
       {/* Filter Chips Bar */}
       <div className="flex flex-wrap items-center justify-between gap-2.5">
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-xs font-semibold text-slate-500 mr-1 flex items-center gap-1">
+          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 mr-1 flex items-center gap-1">
             <Filter size={12} />
-            Category:
+            {t('map.category')}
           </span>
-          {['all', 'pothole', 'garbage', 'streetlight', 'drain'].map((type) => (
+          {[
+            { id: 'all', label: t('map.all_categories') },
+            { id: 'pothole', label: t('problems.pothole') },
+            { id: 'garbage', label: t('problems.garbage') },
+            { id: 'streetlight', label: t('problems.streetlight') },
+            { id: 'drain', label: t('problems.drain') },
+          ].map((cat) => (
             <button
-              key={type}
+              key={cat.id}
               type="button"
-              onClick={() => setSelectedCategory(type)}
+              onClick={() => setSelectedCategory(cat.id)}
               className={`px-3 py-1 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
-                selectedCategory === type
-                  ? 'bg-[#0B2545] text-white font-semibold'
-                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                selectedCategory === cat.id
+                  ? 'bg-[#0B2545] dark:bg-blue-600 text-white font-semibold shadow-xs'
+                  : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
               }`}
             >
-              {type === 'all' ? 'All Categories' : type.charAt(0).toUpperCase() + type.slice(1)}
+              {cat.label}
             </button>
           ))}
         </div>
 
         {/* Status Filter */}
         <div className="flex items-center gap-1.5">
-          <span className="text-xs font-semibold text-slate-500 mr-1">Status:</span>
-          {['ALL', 'REPORTED', 'IN_PROGRESS', 'RESOLVED'].map((st) => (
+          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 mr-1">{t('map.status')}</span>
+          {[
+            { id: 'ALL', label: t('myreports.status_all') },
+            { id: 'REPORTED', label: t('myreports.status_reported') },
+            { id: 'IN_PROGRESS', label: t('myreports.status_in_progress') },
+            { id: 'RESOLVED', label: t('myreports.status_resolved') },
+          ].map((st) => (
             <button
-              key={st}
+              key={st.id}
               type="button"
-              onClick={() => setSelectedStatus(st)}
+              onClick={() => setSelectedStatus(st.id)}
               className={`px-2.5 py-1 rounded-xl text-[11px] font-medium transition-colors cursor-pointer ${
-                selectedStatus === st
-                  ? 'bg-slate-800 text-white font-semibold'
-                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                selectedStatus === st.id
+                  ? 'bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 font-semibold shadow-xs'
+                  : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
               }`}
             >
-              {st === 'ALL' ? 'All' : st === 'IN_PROGRESS' ? 'In Progress' : st.charAt(0) + st.slice(1).toLowerCase()}
+              {st.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Leaflet Map Card */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-xs h-[520px] relative">
+      {/* Leaflet Map Card with Interactive Floating Controls */}
+      <div className="bg-white/90 dark:bg-slate-800/90 rounded-3xl border border-slate-200/80 dark:border-slate-700/80 overflow-hidden shadow-xs h-[520px] relative transition-colors">
         {loading && issues.length === 0 ? (
-          <div className="absolute inset-0 bg-white/80 backdrop-blur-xs flex items-center justify-center z-20">
+          <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xs flex items-center justify-center z-20">
             <div className="flex flex-col items-center gap-2">
-              <Loader2 className="w-8 h-8 animate-spin text-[#0B2545]" />
-              <span className="text-xs text-slate-500 font-medium">Loading civic incidents...</span>
+              <Loader2 className="w-8 h-8 animate-spin text-[#0B2545] dark:text-blue-400" />
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">{t('map.loading')}</span>
             </div>
           </div>
         ) : null}
 
         <div ref={mapContainerRef} className="w-full h-full z-10" />
 
-        {/* Floating Count Badge */}
-        <div className="absolute bottom-3 left-3 z-20 bg-white/90 backdrop-blur-xs border border-slate-200 px-3 py-1.5 rounded-xl shadow-xs text-xs font-medium text-slate-700 flex items-center gap-1.5">
-          <MapPin size={13} className="text-[#0B2545]" />
-          <span>{issues.length} {issues.length === 1 ? 'incident' : 'incidents'} plotted</span>
+        {/* Floating Quick Action Map Controls (Top Right) */}
+        <div className="absolute top-3 right-3 z-20 flex flex-col gap-1.5 shadow-md rounded-2xl overflow-hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 p-1">
+          <button
+            type="button"
+            onClick={handleLocateMe}
+            disabled={gpsLocating}
+            className="p-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            title="Center on my location"
+            aria-label="Center on my location"
+          >
+            <Crosshair size={16} className={gpsLocating ? 'animate-spin text-blue-600' : ''} />
+          </button>
+          <button
+            type="button"
+            onClick={handleResetView}
+            className="p-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            title="Reset city center"
+            aria-label="Reset view to city center"
+          >
+            <RotateCcw size={16} />
+          </button>
+        </div>
+
+        {/* Floating Incident Count Badge (Bottom Left) */}
+        <div className="absolute bottom-3 left-3 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 px-3.5 py-1.5 rounded-2xl shadow-sm text-xs font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+          <MapPin size={13} className="text-[#0B2545] dark:text-blue-400" />
+          <span>{issues.length} {issues.length === 1 ? t('map.incident_plotted') : t('map.incidents_plotted')}</span>
         </div>
       </div>
+
+      {/* Interactive Incident Carousel / Quick Jump Bar */}
+      {issues.length > 0 && (
+        <div className="space-y-2">
+          <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            Explore Mapped Incidents ({issues.length})
+          </div>
+          <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-thin">
+            {issues.slice(0, 8).map((issue) => {
+              const isSelected = activeIssueId === (issue.id || issue.report_id);
+
+              return (
+                <button
+                  key={issue.id || issue.report_id}
+                  type="button"
+                  onClick={() => handleFocusIssue(issue)}
+                  className={`min-w-[180px] p-2.5 rounded-2xl border text-left transition-all shrink-0 cursor-pointer ${
+                    isSelected
+                      ? 'bg-blue-50 dark:bg-blue-950/60 border-blue-300 dark:border-blue-700 shadow-xs'
+                      : 'bg-white/90 dark:bg-slate-800/90 border-slate-200/80 dark:border-slate-700/80 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between text-[10px] mb-1">
+                    <span className="font-mono font-bold text-blue-600 dark:text-blue-400">{issue.report_id}</span>
+                    <span className="text-slate-400">{issue.status}</span>
+                  </div>
+                  <div className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                    {getProblemLabel(issue.problem_type as ProblemType, t)}
+                  </div>
+                  <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                    📍 {issue.location_name || 'Bhopal'}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
-

@@ -8,93 +8,55 @@ import {
   Shield,
   Menu,
   X,
-  RotateCcw,
+  Sparkles,
+  ArrowRight,
 } from 'lucide-react';
 import { AshokaEmblem, NagarDrishtiLogo } from './CivicEmblems';
+import { LanguageSelector } from './LanguageSelector';
+import { ThemeToggle } from './ThemeToggle';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import type { NavView } from './Sidebar';
-import type { CitizenNotification } from '../types/complaint';
-import { getNotifications, markAllNotificationsAsRead, markNotificationAsRead } from '../services/api';
 
 interface NavbarProps {
   currentView: NavView;
-  onNavigate: (view: NavView, authMode?: 'login' | 'signup', reportId?: string) => void;
+  onNavigate: (view: NavView, authMode?: 'login' | 'signup') => void;
   onSearch?: (query: string) => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onNavigate, onSearch }) => {
+export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, onSearch }) => {
   const { t } = useLanguage();
   const { citizen, isLoggedIn, logout } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [notifications, setNotifications] = useState<CitizenNotification[]>([]);
+  const [searchFocused, setSearchFocused] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   const profileRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
-
-  // Load genuine citizen notifications
-  useEffect(() => {
-    if (!isLoggedIn) {
-      setNotifications([]);
-      return;
-    }
-
-    const loadNotifications = () => {
-      getNotifications(25)
-        .then((items) => setNotifications(items))
-        .catch(() => {});
-    };
-
-    loadNotifications();
-    const interval = setInterval(loadNotifications, 20000);
-    return () => clearInterval(interval);
-  }, [isLoggedIn]);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (profileRef.current && !profileRef.current.contains(target)) {
         setProfileOpen(false);
       }
-      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+      if (notifRef.current && !notifRef.current.contains(target)) {
         setNotificationsOpen(false);
       }
+      if (searchContainerRef.current && !searchContainerRef.current.contains(target)) {
+        setSearchFocused(false);
+      }
     };
-    if (profileOpen || notificationsOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [profileOpen, notificationsOpen]);
-
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
-
-  const handleMarkAllRead = async () => {
-    try {
-      await markAllNotificationsAsRead();
-      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-    } catch (err) {
-      console.warn('Failed to mark all notifications read:', err);
-    }
-  };
-
-  const handleNotificationClick = async (notif: CitizenNotification) => {
-    try {
-      if (!notif.is_read) {
-        await markNotificationAsRead(notif.id);
-        setNotifications((prev) =>
-          prev.map((n) => (n.id === notif.id ? { ...n, is_read: true } : n))
-        );
-      }
-      setNotificationsOpen(false);
-      onNavigate('my-reports', undefined, notif.report_id || notif.complaint_id);
-    } catch (err) {
-      console.warn('Failed to update notification:', err);
-    }
-  };
+  }, []);
 
   const displayName = citizen?.name || 'Prithviraj';
   const firstName = displayName.split(' ')[0];
@@ -104,177 +66,215 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, onSearch }) => {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const query = searchQuery.trim();
-    if (!query) return;
-
-    if (query.toUpperCase().startsWith('NGD-') || /^[A-Z0-9-]{6,}$/i.test(query)) {
-      onNavigate('track', undefined, query.toUpperCase());
-    } else if (onSearch) {
-      onSearch(query);
+    if (onSearch && searchQuery.trim()) {
+      onSearch(searchQuery.trim());
+      setSearchFocused(false);
       onNavigate('my-reports');
-    } else {
-      onNavigate('track', undefined, query.toUpperCase());
     }
   };
 
+  const handleQuickTagClick = (tag: string) => {
+    setSearchQuery(tag);
+    if (onSearch) {
+      onSearch(tag);
+    }
+    setSearchFocused(false);
+    onNavigate('my-reports');
+  };
+
+  const navLinks = [
+    { id: 'home' as NavView, labelKey: 'nav.home', defaultLabel: 'Home' },
+    { id: 'report' as NavView, labelKey: 'nav.report_issue', defaultLabel: 'Report Issue' },
+    { id: 'my-reports' as NavView, labelKey: 'nav.my_reports', defaultLabel: 'My Reports' },
+    { id: 'map' as NavView, labelKey: 'nav.map', defaultLabel: 'Map' },
+    { id: 'help' as NavView, labelKey: 'nav.help', defaultLabel: 'Help' },
+  ];
+
   return (
-    <header className="sticky top-0 z-40 bg-white border-b border-slate-200/80 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+    <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-colors">
       <div className="max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 gap-4">
+        <div className="flex items-center justify-between h-16 gap-3 sm:gap-4">
           {/* Left: Emblem of India + NagarDrishti AI Brand */}
-          <div className="flex items-center gap-3.5 sm:gap-4 shrink-0">
+          <div className="flex items-center gap-3 sm:gap-4 shrink-0">
             {/* National Emblem of India */}
             <div
-              className="flex items-center cursor-pointer"
+              className="flex items-center cursor-pointer transition-transform hover:scale-105"
               onClick={() => onNavigate('home')}
-              title="Government of India"
+              title={t('footer.govt', 'Government of India')}
             >
               <AshokaEmblem />
             </div>
 
             {/* Vertical Divider */}
-            <div className="h-8 w-px bg-slate-200 hidden sm:block" />
+            <div className="h-8 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block" />
 
             {/* NagarDrishti AI Logo & Tagline */}
             <div
-              className="flex items-center gap-2.5 cursor-pointer"
+              className="flex items-center gap-2.5 cursor-pointer select-none group"
               onClick={() => onNavigate('home')}
             >
               <NagarDrishtiLogo size={34} />
               <div className="flex flex-col justify-center leading-none">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-bold text-[15px] sm:text-[16px] text-slate-900 tracking-tight font-sans">
+                  <span className="font-bold text-[15px] sm:text-[16px] text-slate-900 dark:text-white tracking-tight font-sans group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                     NagarDrishti AI
                   </span>
                 </div>
-                <span className="text-[10.5px] font-medium text-slate-500 tracking-tight mt-0.5 font-sans">
-                  Safer • Cleaner • Greener
+                <span className="text-[10.5px] font-medium text-slate-500 dark:text-slate-400 tracking-tight mt-0.5 font-sans">
+                  {t('nav.brand_subtitle', 'Safer • Cleaner • Greener')}
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Center: Search reports, locations, or keywords... */}
-          <div className="flex-1 max-w-lg hidden md:block mx-2">
+          {/* Center-Left: Desktop Quick Navigation Tabs */}
+          <nav className="hidden xl:flex items-center gap-1 bg-slate-100/90 dark:bg-slate-800/90 p-1 rounded-2xl border border-slate-200/70 dark:border-slate-700/70 text-xs font-medium">
+            {navLinks.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => onNavigate(tab.id)}
+                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                  currentView === tab.id
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs font-semibold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                }`}
+              >
+                {t(tab.labelKey, tab.defaultLabel)}
+              </button>
+            ))}
+          </nav>
+
+          {/* Center: Interactive Search reports, locations, or keywords... */}
+          <div className="flex-1 max-w-md hidden md:block mx-2 relative" ref={searchContainerRef}>
             <form onSubmit={handleSearchSubmit} className="relative">
               <Search
                 size={16}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none"
               />
               <input
                 type="text"
                 value={searchQuery}
+                onFocus={() => setSearchFocused(true)}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search reports, locations, or keywords..."
-                className="w-full h-10 pl-10 pr-4 text-xs font-normal text-slate-800 placeholder-slate-400 bg-[#F1F5F9] hover:bg-[#EDF2F7] focus:bg-white rounded-xl border border-transparent focus:border-slate-300 focus:outline-hidden transition-all shadow-2xs font-sans"
+                placeholder={t('nav.search_placeholder', 'Search reports, locations, or keywords...')}
+                className="w-full h-10 pl-10 pr-4 text-xs font-normal text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 bg-[#F1F5F9] dark:bg-slate-800/90 hover:bg-[#EDF2F7] dark:hover:bg-slate-750 focus:bg-white dark:focus:bg-slate-900 rounded-xl border border-transparent focus:border-slate-300 dark:focus:border-slate-700 focus:outline-hidden transition-all shadow-2xs font-sans"
               />
             </form>
+
+            {/* Interactive Search Suggestions Popover */}
+            {searchFocused && (
+              <div className="absolute left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl p-3 z-50 animate-in fade-in slide-in-from-top-2 duration-150 space-y-2.5 text-xs font-sans">
+                <div className="text-[10.5px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center justify-between">
+                  <span>Quick Search Tags</span>
+                  <span className="text-[9.5px]">Press Enter to search</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { label: 'Pothole', icon: '🕳️' },
+                    { label: 'Garbage', icon: '🗑️' },
+                    { label: 'Streetlight', icon: '💡' },
+                    { label: 'Blocked Drain', icon: '🌊' },
+                    { label: 'MP Nagar', icon: '📍' },
+                  ].map((chip) => (
+                    <button
+                      key={chip.label}
+                      type="button"
+                      onClick={() => handleQuickTagClick(chip.label)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:text-blue-600 dark:hover:text-blue-400 text-xs transition-colors cursor-pointer"
+                    >
+                      <span>{chip.icon}</span>
+                      <span>{chip.label}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+                  <span>Looking for a report ID?</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchFocused(false);
+                      window.location.hash = 'track';
+                    }}
+                    className="text-blue-600 dark:text-blue-400 font-semibold hover:underline inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Track ID</span>
+                    <ArrowRight size={11} />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Right: Notification Bell + Divider + User Profile / Sign In */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Citizen Notification Center Dropdown */}
+          {/* Right: Theme Toggle + Language Selector + Bell + Profile */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            {/* Language Selector placed prominently in Navbar */}
+            <div className="hidden sm:inline-flex items-center">
+              <LanguageSelector />
+            </div>
+
+            {/* Light / Dark Mode Toggle */}
+            <ThemeToggle />
+
+            {/* Interactive Notification Bell */}
             <div className="relative inline-block" ref={notifRef}>
               <button
                 type="button"
                 onClick={() => setNotificationsOpen(!notificationsOpen)}
-                className="relative p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
-                title="Civic Notifications"
+                className="relative p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer select-none"
+                title="Notifications"
                 aria-label="View notifications"
-                aria-expanded={notificationsOpen}
               >
                 <Bell size={18} />
-                {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full bg-rose-600 text-[9.5px] font-bold text-white flex items-center justify-center ring-2 ring-white font-mono">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
+                {hasUnreadNotifications && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900 animate-pulse" />
                 )}
               </button>
 
-              {/* Notifications Dropdown */}
+              {/* Notifications Popover */}
               {notificationsOpen && (
-                <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl bg-white border border-slate-200 shadow-xl z-50 text-xs animate-in fade-in slide-in-from-top-1 duration-150 overflow-hidden font-sans">
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/70">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-900 text-xs">Civic Notifications</span>
-                      {unreadCount > 0 && (
-                        <span className="px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-semibold">
-                          {unreadCount} new
-                        </span>
-                      )}
+                <div className="absolute right-0 sm:right-0 mt-2 w-80 sm:w-96 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-3 z-50 animate-in fade-in slide-in-from-top-2 duration-150 text-xs font-sans">
+                  <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-white">
+                      <Bell size={14} className="text-amber-500" />
+                      <span>{t('nav.notifications', 'Municipal Alerts')}</span>
                     </div>
-                    {unreadCount > 0 && (
+                    {hasUnreadNotifications && (
                       <button
                         type="button"
-                        onClick={handleMarkAllRead}
-                        className="text-[11px] text-blue-600 hover:text-blue-800 font-semibold cursor-pointer"
+                        onClick={() => setHasUnreadNotifications(false)}
+                        className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
                       >
-                        Mark all read
+                        {t('nav.mark_all_read', 'Mark all read')}
                       </button>
                     )}
                   </div>
-
-                  <div className="max-h-[380px] overflow-y-auto divide-y divide-slate-100">
-                    {notifications.length === 0 ? (
-                      <div className="p-6 text-center text-slate-500 space-y-1">
-                        <p className="font-medium text-xs text-slate-700">No notifications yet</p>
-                        <p className="text-[11px] text-slate-400">
-                          {isLoggedIn
-                            ? 'Real lifecycle updates on your complaints will appear here.'
-                            : 'Sign in to receive updates about your civic reports.'}
-                        </p>
+                  <div className="py-2 space-y-2 max-h-72 overflow-y-auto">
+                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-800 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-emerald-700 dark:text-emerald-400 text-[11px] flex items-center gap-1">
+                          <CheckCircle2 size={12} /> Work Completed
+                        </span>
+                        <span className="text-[10px] text-slate-400">12m ago</span>
                       </div>
-                    ) : (
-                      notifications.map((notif) => (
-                        <div
-                          key={notif.id}
-                          onClick={() => handleNotificationClick(notif)}
-                          className={`p-3.5 hover:bg-slate-50 transition-colors cursor-pointer flex items-start gap-3 ${
-                            !notif.is_read ? 'bg-blue-50/40' : ''
-                          }`}
-                        >
-                          <div className="mt-0.5 shrink-0">
-                            {notif.event_type === 'RESOLVED' || notif.event_type === 'CONFIRMED' ? (
-                              <CheckCircle2 size={16} className="text-emerald-600" />
-                            ) : notif.event_type === 'REOPENED' ? (
-                              <RotateCcw size={16} className="text-amber-600" />
-                            ) : notif.event_type === 'IN_PROGRESS' ? (
-                              <Shield size={16} className="text-blue-600" />
-                            ) : (
-                              <Bell size={16} className="text-slate-600" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-1 mb-0.5">
-                              <span className="font-bold text-slate-900 text-xs truncate">
-                                {notif.title}
-                              </span>
-                              <span className="text-[10px] text-slate-400 shrink-0 font-mono">
-                                {new Date(notif.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-                              </span>
-                            </div>
-                            <p className="text-[11.5px] text-slate-600 leading-snug line-clamp-2">
-                              {notif.message}
-                            </p>
-                            <div className="flex items-center gap-2 mt-1.5">
-                              <span className="text-[10px] font-mono font-medium text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">
-                                {notif.report_id}
-                              </span>
-                              {!notif.is_read && (
-                                <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    )}
+                      <p className="text-slate-700 dark:text-slate-300 text-xs">Pothole repair at MP Nagar Zone-1 verified by municipal engineer.</p>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-800 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-blue-700 dark:text-blue-400 text-[11px] flex items-center gap-1">
+                          <Sparkles size={12} /> AI Civic Grid Active
+                        </span>
+                        <span className="text-[10px] text-slate-400">1h ago</span>
+                      </div>
+                      <p className="text-slate-700 dark:text-slate-300 text-xs">Streetlight outage auto-clustered in Ward 14. Action dispatched.</p>
+                    </div>
                   </div>
                 </div>
               )}
             </div>
 
             {/* Vertical Divider */}
-            <div className="h-6 w-px bg-slate-200" />
+            <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block" />
 
             {/* User Profile Pill or Sign In */}
             {isLoggedIn ? (
@@ -282,19 +282,19 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, onSearch }) => {
                 <button
                   type="button"
                   onClick={() => setProfileOpen(!profileOpen)}
-                  className="flex items-center gap-2 py-1 pl-1 pr-2 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer select-none"
+                  className="flex items-center gap-2 py-1 pl-1 pr-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer select-none"
                   aria-expanded={profileOpen}
                 >
                   {/* Navy Circle Avatar */}
-                  <div className="w-8 h-8 rounded-full bg-[#0B2545] text-white text-xs font-bold flex items-center justify-center tracking-tight shadow-xs font-sans">
+                  <div className="w-8 h-8 rounded-full bg-[#0B2545] dark:bg-blue-600 text-white text-xs font-bold flex items-center justify-center tracking-tight shadow-xs font-sans">
                     {initials}
                   </div>
-                  <span className="font-semibold text-xs text-slate-800 hidden sm:inline-block max-w-[110px] truncate font-sans">
+                  <span className="font-semibold text-xs text-slate-800 dark:text-slate-200 hidden sm:inline-block max-w-[110px] truncate font-sans">
                     {firstName}
                   </span>
                   <ChevronDown
                     size={14}
-                    className={`text-slate-500 transition-transform duration-150 ${
+                    className={`text-slate-500 dark:text-slate-400 transition-transform duration-150 ${
                       profileOpen ? 'rotate-180' : ''
                     }`}
                   />
@@ -302,40 +302,40 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, onSearch }) => {
 
                 {/* Profile Dropdown */}
                 {profileOpen && (
-                  <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-white border border-slate-200 shadow-xl p-3 z-50 text-xs space-y-3 animate-in fade-in slide-in-from-top-1 duration-150">
-                    <div className="flex items-center gap-2.5 pb-2.5 border-b border-slate-100">
-                      <div className="w-9 h-9 rounded-full bg-[#0B2545] text-white text-xs font-bold flex items-center justify-center shrink-0">
+                  <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl p-3 z-50 text-xs space-y-3 animate-in fade-in slide-in-from-top-1 duration-150">
+                    <div className="flex items-center gap-2.5 pb-2.5 border-b border-slate-100 dark:border-slate-800">
+                      <div className="w-9 h-9 rounded-full bg-[#0B2545] dark:bg-blue-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
                         {initials}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="font-bold text-slate-900 truncate font-sans">
+                        <div className="font-bold text-slate-900 dark:text-white truncate font-sans">
                           {displayName}
                         </div>
-                        <div className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1 mt-0.5">
-                          <CheckCircle2 size={11} className="text-emerald-600" />
-                          <span>Verified Citizen</span>
+                        <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1 mt-0.5">
+                          <CheckCircle2 size={11} className="text-emerald-600 dark:text-emerald-400" />
+                          <span>{t('auth.verified_citizen', 'Verified Citizen')}</span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="space-y-1 text-[11px] text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                    <div className="space-y-1 text-[11px] text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/80 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
                       <div className="truncate font-sans text-[11px]">
-                        <span className="text-slate-400">Email:</span> {citizen?.email || 'citizen@gov.in'}
+                        <span className="text-slate-400 dark:text-slate-500">Email:</span> {citizen?.email || 'citizen@gov.in'}
                       </div>
-                      <div className="text-[10.5px] text-slate-500 flex items-center gap-1 mt-1">
-                        <Shield size={11} className="text-slate-400" />
-                        <span>Verified Citizen Account</span>
+                      <div className="text-[10.5px] text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-1">
+                        <Shield size={11} className="text-slate-400 dark:text-slate-500" />
+                        <span>Aadhaar/OTP Verified</span>
                       </div>
                     </div>
 
-                    <div className="pt-1 flex items-center justify-between gap-2 border-t border-slate-100">
+                    <div className="pt-1 flex items-center justify-between gap-2 border-t border-slate-100 dark:border-slate-800">
                       <button
                         type="button"
                         onClick={() => {
                           setProfileOpen(false);
                           onNavigate('my-reports');
                         }}
-                        className="text-xs text-slate-700 hover:text-slate-900 font-medium py-1 px-2.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                        className="text-xs text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-medium py-1 px-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                       >
                         {t('nav.my_reports', 'My Reports')}
                       </button>
@@ -345,7 +345,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, onSearch }) => {
                           logout();
                           setProfileOpen(false);
                         }}
-                        className="text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 font-medium py-1 px-2.5 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                        className="text-xs text-rose-600 dark:text-rose-400 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 font-medium py-1 px-2.5 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
                       >
                         <LogOut size={12} />
                         <span>{t('auth.logout', 'Sign Out')}</span>
@@ -359,14 +359,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, onSearch }) => {
                 <button
                   type="button"
                   onClick={() => onNavigate('auth', 'login')}
-                  className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 >
                   {t('auth.login', 'Sign In')}
                 </button>
                 <button
                   type="button"
                   onClick={() => onNavigate('auth', 'signup')}
-                  className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-[#0B2545] hover:bg-[#07192f] text-white transition-colors cursor-pointer shadow-xs"
+                  className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-[#0B2545] hover:bg-[#07192f] dark:bg-blue-600 dark:hover:bg-blue-700 text-white transition-colors cursor-pointer shadow-xs"
                 >
                   {t('auth.signup', 'Sign Up')}
                 </button>
@@ -377,7 +377,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, onSearch }) => {
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer ml-1"
+              className="lg:hidden p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer ml-1"
               aria-label="Toggle navigation menu"
             >
               {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
@@ -387,76 +387,96 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, onSearch }) => {
 
         {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
-          <div className="lg:hidden py-3 px-2 border-t border-slate-100 space-y-2 animate-in fade-in duration-150">
+          <div className="lg:hidden py-3 px-2 border-t border-slate-100 dark:border-slate-800 space-y-3 animate-in fade-in duration-150">
+            {/* Mobile Language Selector */}
+            <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
+              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                {t('lang.select_language', 'Select Language')}:
+              </span>
+              <LanguageSelector />
+            </div>
+
             <div className="mb-2">
               <form onSubmit={handleSearchSubmit} className="relative">
                 <Search
                   size={15}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"
                 />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search reports, locations..."
-                  className="w-full h-9 pl-9 pr-3 text-xs bg-slate-100 rounded-lg text-slate-800"
+                  placeholder={t('nav.search_placeholder', 'Search reports, locations...')}
+                  className="w-full h-9 pl-9 pr-3 text-xs bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-lg"
                 />
               </form>
             </div>
+
             <div className="grid grid-cols-2 gap-1.5 text-xs font-medium">
               <button
                 onClick={() => {
                   onNavigate('home');
                   setMobileMenuOpen(false);
                 }}
-                className="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 text-left"
+                className={`p-2.5 rounded-xl text-left transition-colors ${
+                  currentView === 'home'
+                    ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-semibold'
+                    : 'bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300'
+                }`}
               >
-                Home
+                {t('nav.home', 'Home')}
               </button>
               <button
                 onClick={() => {
                   onNavigate('report');
                   setMobileMenuOpen(false);
                 }}
-                className="p-2 rounded-lg bg-blue-50 text-blue-600 font-semibold text-left"
+                className={`p-2.5 rounded-xl text-left transition-colors ${
+                  currentView === 'report'
+                    ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-semibold'
+                    : 'bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300'
+                }`}
               >
-                Report Issue
+                {t('nav.report_issue', 'Report Issue')}
               </button>
               <button
                 onClick={() => {
                   onNavigate('my-reports');
                   setMobileMenuOpen(false);
                 }}
-                className="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 text-left"
+                className={`p-2.5 rounded-xl text-left transition-colors ${
+                  currentView === 'my-reports'
+                    ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-semibold'
+                    : 'bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300'
+                }`}
               >
-                My Reports
+                {t('nav.my_reports', 'My Reports')}
               </button>
               <button
                 onClick={() => {
                   onNavigate('map');
                   setMobileMenuOpen(false);
                 }}
-                className="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 text-left"
+                className={`p-2.5 rounded-xl text-left transition-colors ${
+                  currentView === 'map'
+                    ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-semibold'
+                    : 'bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300'
+                }`}
               >
-                Map
-              </button>
-              <button
-                onClick={() => {
-                  onNavigate('track');
-                  setMobileMenuOpen(false);
-                }}
-                className="p-2 rounded-lg bg-blue-50 text-blue-700 font-semibold text-left"
-              >
-                Track Status
+                {t('nav.map', 'Map')}
               </button>
               <button
                 onClick={() => {
                   onNavigate('help');
                   setMobileMenuOpen(false);
                 }}
-                className="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 text-left"
+                className={`p-2.5 rounded-xl text-left transition-colors col-span-2 ${
+                  currentView === 'help'
+                    ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-semibold'
+                    : 'bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300'
+                }`}
               >
-                Help & Support
+                {t('nav.help', 'Help & Support')}
               </button>
             </div>
           </div>
