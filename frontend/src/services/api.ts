@@ -9,7 +9,10 @@ import type {
   ComplaintStatusHistoryItem,
   DashboardStatistics,
   Department,
-  HeatmapPoint
+  HeatmapPoint,
+  NearbyCivicIssue,
+  SimilarComplaintSummary,
+  StatusRequestResponse
 } from '../types/complaint';
 import { supabase } from './supabaseClient';
 
@@ -306,3 +309,77 @@ export async function markAllNotificationsAsRead(): Promise<number> {
   const data = await res.json();
   return data.marked_count || 0;
 }
+
+export async function getNearbyCivicIssues(filters?: {
+  category?: string;
+  status?: string;
+  radius_km?: number;
+  lat?: number;
+  lng?: number;
+}): Promise<NearbyCivicIssue[]> {
+  const params = new URLSearchParams();
+  if (filters?.category && filters.category !== 'all') params.append('category', filters.category);
+  if (filters?.status && filters.status !== 'ALL') params.append('status', filters.status);
+  if (filters?.radius_km) params.append('radius_km', filters.radius_km.toString());
+  if (filters?.lat !== undefined) params.append('lat', filters.lat.toString());
+  if (filters?.lng !== undefined) params.append('lng', filters.lng.toString());
+
+  const url = `${API_BASE}/nearby/issues${params.toString() ? '?' + params.toString() : ''}`;
+  const headers = await getAuthHeaders();
+  const res = await fetch(url, { headers });
+  if (!res.ok) {
+    throw await parseErrorResponse(res, 'Failed to fetch nearby civic issues.');
+  }
+  return res.json();
+}
+
+export async function getSimilarComplaints(params: {
+  problem_type: string;
+  latitude: number;
+  longitude: number;
+  radius_km?: number;
+}): Promise<SimilarComplaintSummary[]> {
+  const qp = new URLSearchParams({
+    problem_type: params.problem_type,
+    latitude: params.latitude.toString(),
+    longitude: params.longitude.toString(),
+  });
+  if (params.radius_km) qp.append('radius_km', params.radius_km.toString());
+
+  const url = `${API_BASE}/complaints/similar?${qp.toString()}`;
+  const headers = await getAuthHeaders();
+  const res = await fetch(url, { headers });
+  if (!res.ok) {
+    throw await parseErrorResponse(res, 'Failed to check similar reports.');
+  }
+  return res.json();
+}
+
+export async function requestComplaintStatusUpdate(
+  idOrReportId: string,
+  message?: string
+): Promise<StatusRequestResponse> {
+  const headers = await getJsonAuthHeaders();
+  const res = await fetch(`${API_BASE}/complaints/${idOrReportId}/status-request`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ message: message || null }),
+  });
+
+  if (!res.ok) {
+    throw await parseErrorResponse(res, 'Failed to submit status update request.');
+  }
+  return res.json();
+}
+
+export async function getComplaintStatusRequests(
+  idOrReportId: string
+): Promise<StatusRequestResponse[]> {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_BASE}/complaints/${idOrReportId}/status-requests`, { headers });
+  if (!res.ok) {
+    throw await parseErrorResponse(res, 'Failed to fetch status update requests.');
+  }
+  return res.json();
+}
+

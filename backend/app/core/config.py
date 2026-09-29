@@ -21,6 +21,13 @@ class Settings(BaseSettings):
     
     # Local fallback image upload dir
     UPLOAD_DIR: str = "uploads"
+
+    # Phase 7: Civic Discovery & Follow-up Configuration
+    STATUS_REQUEST_INACTIVITY_HOURS: int = 48  # Minimum hours of inactivity before request can be made
+    STATUS_REQUEST_COOLDOWN_HOURS: int = 24    # Minimum cooldown hours between follow-up requests
+    NEARBY_DEFAULT_RADIUS_KM: float = 10.0     # Default radius for nearby issue discovery
+    SIMILAR_DEFAULT_RADIUS_KM: float = 1.0     # Default radius for duplicate/similar issue detection
+    SIMILAR_MAX_AGE_DAYS: int = 30             # Time window for pre-submission similar issues
     
     # CORS
     CORS_ORIGINS: Union[List[str], str] = [

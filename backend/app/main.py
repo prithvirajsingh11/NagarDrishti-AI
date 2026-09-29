@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
-from app.api import analyze, complaints, dashboard, departments, notifications
+from app.api import analyze, complaints, dashboard, departments, nearby, notifications
 
 # Ensure local upload dir exists (with fallback for serverless read-only environments)
 upload_path = Path(settings.UPLOAD_DIR)
@@ -59,6 +59,7 @@ app.include_router(complaints.router, prefix=settings.API_V1_PREFIX)
 app.include_router(notifications.router, prefix=settings.API_V1_PREFIX)
 app.include_router(dashboard.router, prefix=settings.API_V1_PREFIX)
 app.include_router(departments.router, prefix=settings.API_V1_PREFIX)
+app.include_router(nearby.router, prefix=settings.API_V1_PREFIX)
 
 @app.get("/")
 async def root():

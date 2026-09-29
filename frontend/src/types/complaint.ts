@@ -91,10 +91,48 @@ export interface CitizenNotification {
 export interface CitizenImpactSummary {
   total_submitted: number;
   total_reports: number;
+  active_reports?: number;
   resolved_count: number;
   in_progress_count: number;
   reopened_count: number;
-  reported_count: number;
+  reported_count?: number;
+  pending_status_requests?: number;
+}
+
+export interface NearbyCivicIssue {
+  id: string;
+  report_id: string;
+  problem_type: ProblemType | string;
+  severity: SeverityLevel | string;
+  status: ComplaintStatus | string;
+  location_name: string;
+  latitude: number;
+  longitude: number;
+  created_at: string;
+}
+
+export interface SimilarComplaintSummary {
+  id: string;
+  report_id: string;
+  problem_type: ProblemType | string;
+  location_name: string;
+  severity: SeverityLevel | string;
+  status: ComplaintStatus | string;
+  distance_meters: number;
+  created_at: string;
+}
+
+export interface StatusRequestResponse {
+  id: string;
+  complaint_id: string;
+  report_id: string;
+  citizen_id: string;
+  problem_type: string;
+  location_name?: string | null;
+  message?: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Department {

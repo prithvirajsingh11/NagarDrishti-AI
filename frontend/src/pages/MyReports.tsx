@@ -8,21 +8,26 @@ import {
   Clock,
   Layers,
   MapPin,
+  MessageSquare,
   RotateCcw,
-  Search
+  Search,
+  Send
 } from 'lucide-react';
 import type {
   Complaint,
   ComplaintPublicSummary,
   ComplaintStatus,
-  ComplaintStatusHistoryItem
+  ComplaintStatusHistoryItem,
+  StatusRequestResponse
 } from '../types/complaint';
 import {
   confirmComplaintResolution,
   getComplaintHistory,
+  getComplaintStatusRequests,
   getComplaints,
   getPublicComplaintSummary,
-  reopenComplaint
+  reopenComplaint,
+  requestComplaintStatusUpdate
 } from '../services/api';
 import { ProblemIcon, getProblemLabel } from '../components/ProblemIcon';
 import { StatusBadge } from '../components/StatusBadge';
@@ -62,6 +67,13 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
   const [duplicateSummary, setDuplicateSummary] = useState<ComplaintPublicSummary | null>(null);
   const [loadingDuplicateSummary, setLoadingDuplicateSummary] = useState(false);
 
+  // Phase 7 Citizen Follow-Up / Status Update State
+  const [statusRequests, setStatusRequests] = useState<StatusRequestResponse[]>([]);
+  const [showStatusRequestForm, setShowStatusRequestForm] = useState(false);
+  const [statusRequestMessage, setStatusRequestMessage] = useState('');
+  const [submittingStatusRequest, setSubmittingStatusRequest] = useState(false);
+  const [statusRequestFeedback, setStatusRequestFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
   useEffect(() => {
     setLoading(true);
     setErrorMessage(null);
@@ -89,11 +101,20 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
     setReopenReason('');
     setActionFeedback(null);
     setDuplicateSummary(null);
+    setShowStatusRequestForm(false);
+    setStatusRequestMessage('');
+    setStatusRequestFeedback(null);
+    setStatusRequests([]);
 
     if (!activeComplaint) {
       setHistoryItems([]);
       return;
     }
+
+    const targetId = activeComplaint.id || activeComplaint.report_id;
+    getComplaintStatusRequests(targetId)
+      .then((reqs) => setStatusRequests(reqs))
+      .catch(() => setStatusRequests([]));
 
     if (activeComplaint.status_history && activeComplaint.status_history.length > 0) {
       setHistoryItems(activeComplaint.status_history);
@@ -263,6 +284,30 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
       });
     } finally {
       setReopening(false);
+    }
+  };
+
+  const handleRequestStatusUpdate = async () => {
+    if (!activeComplaint) return;
+    setSubmittingStatusRequest(true);
+    setStatusRequestFeedback(null);
+    try {
+      const targetId = activeComplaint.report_id || activeComplaint.id;
+      const res = await requestComplaintStatusUpdate(targetId, statusRequestMessage);
+      setStatusRequests((prev) => [res, ...prev]);
+      setShowStatusRequestForm(false);
+      setStatusRequestMessage('');
+      setStatusRequestFeedback({
+        message: 'Follow-up inquiry submitted. The responsible municipal team has been notified.',
+        type: 'success',
+      });
+    } catch (err: any) {
+      setStatusRequestFeedback({
+        message: err.message || 'Failed to submit status update request.',
+        type: 'error',
+      });
+    } finally {
+      setSubmittingStatusRequest(false);
     }
   };
 
@@ -880,7 +925,144 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                 </div>
               )}
 
-              {/* 5. Citizen Resolution Confirmation / Reopen Flow */}
+              {/* 5. Citizen Status Follow-Up Request */}
+              {activeComplaint.status !== 'RESOLVED' &&
+                !activeComplaint.citizen_resolution_confirmed && (
+                  <div className="bg-slate-50/80 border border-slate-200/90 rounded-xl p-4 space-y-3 font-sans">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <MessageSquare size={15} className="text-slate-700" />
+                        <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                          Follow-Up with Authority
+                        </h4>
+                      </div>
+                      <span className="text-[10px] text-slate-500 font-medium">
+                        48h cooldown protection
+                      </span>
+                    </div>
+
+                    {statusRequestFeedback && (
+                      <div
+                        className={`p-2.5 rounded-lg text-xs font-medium ${
+                          statusRequestFeedback.type === 'success'
+                            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                            : 'bg-rose-50 text-rose-800 border border-rose-200'
+                        }`}
+                      >
+                        {statusRequestFeedback.message}
+                      </div>
+                    )}
+
+                    {/* Pending Request Banner */}
+                    {statusRequests.some((r) => r.status === 'PENDING') ? (
+                      <div className="p-3 bg-amber-50/80 border border-amber-200/80 rounded-lg text-xs space-y-1">
+                        <div className="flex items-center gap-1.5 font-semibold text-amber-900">
+                          <Clock size={13} className="text-amber-700" />
+                          <span>Status Update Request Pending</span>
+                        </div>
+                        <p className="text-[11px] text-amber-800 leading-snug">
+                          Your follow-up request has been transmitted to {activeComplaint.department}. The department is reviewing progress.
+                        </p>
+                      </div>
+                    ) : !showStatusRequestForm ? (
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                        <p className="text-[11px] text-slate-600 leading-snug">
+                          Has this issue stalled? You can send an official follow-up note to {activeComplaint.department}.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setShowStatusRequestForm(true)}
+                          className="self-start sm:self-auto shrink-0 px-3.5 py-1.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 font-medium text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                        >
+                          <Send size={12} />
+                          <span>Request Update</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2.5 pt-2 border-t border-slate-200">
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                            Optional note for municipal authorities (max 300 characters):
+                          </label>
+                          <textarea
+                            value={statusRequestMessage}
+                            onChange={(e) => setStatusRequestMessage(e.target.value.slice(0, 300))}
+                            placeholder="e.g. Danger to morning school buses; please expedite road patch..."
+                            rows={2}
+                            maxLength={300}
+                            className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:border-slate-500"
+                          />
+                          <div className="text-[10px] text-slate-400 text-right">
+                            {statusRequestMessage.length}/300
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={handleRequestStatusUpdate}
+                            disabled={submittingStatusRequest}
+                            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50 shadow-xs"
+                          >
+                            <Send size={13} />
+                            <span>{submittingStatusRequest ? 'Submitting...' : 'Send Follow-Up'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowStatusRequestForm(false)}
+                            disabled={submittingStatusRequest}
+                            className="px-3 py-2 text-slate-600 hover:text-slate-800 text-xs font-medium cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Past status update requests log */}
+                    {statusRequests.length > 0 && (
+                      <div className="pt-2 border-t border-slate-200/60 space-y-1.5">
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                          Follow-up Inquiries ({statusRequests.length})
+                        </span>
+                        <div className="space-y-1 max-h-32 overflow-y-auto">
+                          {statusRequests.map((req) => (
+                            <div
+                              key={req.id}
+                              className="p-2 bg-white rounded-lg border border-slate-200 text-[11px] flex items-start justify-between gap-2"
+                            >
+                              <div className="space-y-0.5 min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span
+                                    className={`px-1.5 py-0.2 rounded text-[9.5px] font-bold ${
+                                      req.status === 'PENDING'
+                                        ? 'bg-amber-100 text-amber-800'
+                                        : req.status === 'RESPONDED'
+                                        ? 'bg-emerald-100 text-emerald-800'
+                                        : 'bg-slate-100 text-slate-700'
+                                    }`}
+                                  >
+                                    {req.status}
+                                  </span>
+                                  <span className="text-[10px] text-slate-400 font-mono">
+                                    {formatDateTime(req.created_at)}
+                                  </span>
+                                </div>
+                                {req.message && (
+                                  <p className="text-slate-700 italic truncate max-w-xs">
+                                    "{req.message}"
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+              {/* 6. Citizen Resolution Confirmation / Reopen Flow */}
               {activeComplaint.status === 'RESOLVED' &&
                 !activeComplaint.citizen_resolution_confirmed &&
                 !activeComplaint.citizen_reopened && (

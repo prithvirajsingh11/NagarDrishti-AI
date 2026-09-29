@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -26,10 +26,12 @@ import type {
   Complaint,
   ProblemType,
   SeverityLevel,
+  SimilarComplaintSummary,
 } from '../types/complaint';
 import {
   analyzeCivicImage,
   createComplaint,
+  getSimilarComplaints,
   uploadComplaintImage,
 } from '../services/api';
 import { ProblemIcon, getProblemLabel } from '../components/ProblemIcon';
@@ -119,6 +121,25 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
 
   // Submission state
   const [submittedComplaint, setSubmittedComplaint] = useState<Complaint | null>(null);
+
+  // Pre-submission duplicate awareness state
+  const [similarComplaints, setSimilarComplaints] = useState<SimilarComplaintSummary[]>([]);
+
+  useEffect(() => {
+    if (currentStep === 'confirm') {
+      getSimilarComplaints({
+        problem_type: editedProblemType,
+        latitude,
+        longitude,
+        radius_km: 1.0,
+      })
+        .then((res) => setSimilarComplaints(res))
+        .catch((err) => {
+          console.warn('Similar complaint check non-fatal error:', err);
+          setSimilarComplaints([]);
+        });
+    }
+  }, [currentStep, editedProblemType, latitude, longitude]);
 
   // Auto-detect geolocation if possible
   const handleAutoDetectLocation = () => {
@@ -943,6 +964,20 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
                 <h3 className="text-xs font-semibold text-slate-900 pb-2 border-b border-slate-100">
                   Review Complaint Summary
                 </h3>
+
+                {/* Pre-submission duplicate awareness banner */}
+                {similarComplaints.length > 0 && (
+                  <div className="p-3 bg-amber-50/90 border border-amber-200/90 rounded-xl space-y-1.5 text-xs font-sans">
+                    <div className="flex items-center gap-2 text-amber-900 font-semibold text-[11.5px]">
+                      <AlertTriangle size={15} className="text-amber-600 shrink-0" />
+                      <span>Existing Report Nearby ({similarComplaints.length} detected within 1km)</span>
+                    </div>
+                    <p className="text-[11px] text-amber-800 leading-snug">
+                      A similar incident was reported nearby (e.g. <span className="font-mono font-bold">{similarComplaints[0].report_id}</span> at {similarComplaints[0].location_name || 'vicinity'}, ~{Math.round(similarComplaints[0].distance_meters)}m away).
+                      You can still submit your report with this photo to help municipal authorities cross-verify urgency and scope.
+                    </p>
+                  </div>
+                )}
 
                 {previewUrl && (
                   <div className="h-44 w-full rounded-xl overflow-hidden bg-slate-100 border border-slate-200">

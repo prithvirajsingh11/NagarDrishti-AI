@@ -14,7 +14,10 @@ from app.schemas.complaint import (
     ComplaintResponse,
     ComplaintStatus,
     ComplaintStatusHistoryItem,
-    ComplaintUpdateStatus
+    ComplaintUpdateStatus,
+    SimilarComplaintSummary,
+    StatusRequestCreate,
+    StatusRequestResponse
 )
 from app.services.storage_service import storage_service
 
@@ -219,6 +222,30 @@ async def get_my_civic_impact(user: Dict = Depends(get_current_user)):
     return impact
 
 
+@router.get("/similar", response_model=List[SimilarComplaintSummary])
+async def find_similar_complaints(
+    problem_type: str = Query(..., description="Problem category to match (e.g. pothole, garbage)"),
+    latitude: float = Query(..., description="Latitude of proposed civic issue"),
+    longitude: float = Query(..., description="Longitude of proposed civic issue"),
+    radius_km: float = Query(default=1.0, ge=0.01, le=25.0, description="Search radius in kilometers"),
+    max_age_days: int = Query(default=30, ge=1, le=180, description="Max age in days for active issues"),
+    user: Dict = Depends(get_current_user)
+):
+    """
+    Pre-submission similarity check to prevent duplicate reports.
+    Returns safe public summaries of nearby matching civic issues.
+    Never blocks legitimate reporting.
+    """
+    matches = await db.check_similar_complaints(
+        problem_type=problem_type,
+        latitude=latitude,
+        longitude=longitude,
+        radius_km=radius_km,
+        max_age_days=max_age_days
+    )
+    return matches
+
+
 @router.get("/{id}", response_model=ComplaintResponse)
 async def get_complaint(
     id: str,
@@ -348,3 +375,71 @@ async def get_public_summary(
     if not summary:
         raise HTTPException(status_code=404, detail="Referenced complaint not found.")
     return summary
+
+
+@router.get("/{id}/similar", response_model=List[SimilarComplaintSummary])
+async def find_similar_to_complaint(
+    id: str,
+    radius_km: float = Query(default=1.0, ge=0.01, le=25.0),
+    max_age_days: int = Query(default=30, ge=1, le=180),
+    user: Dict = Depends(get_current_user)
+):
+    """
+    Find complaints similar to an existing report by ID.
+    Excludes the report itself.
+    """
+    complaint = await db.get_complaint_by_id(id, is_authority=True)
+    if not complaint:
+        raise HTTPException(status_code=404, detail="Complaint not found.")
+    matches = await db.check_similar_complaints(
+        problem_type=complaint.get("problem_type", "other"),
+        latitude=complaint.get("latitude", 0.0),
+        longitude=complaint.get("longitude", 0.0),
+        radius_km=radius_km,
+        max_age_days=max_age_days
+    )
+    return [m for m in matches if m.get("id") != complaint.get("id") and m.get("report_id") != complaint.get("report_id")]
+
+
+@router.post("/{id}/status-request", response_model=StatusRequestResponse)
+async def request_complaint_status_update(
+    id: str,
+    payload: StatusRequestCreate = StatusRequestCreate(),
+    user: Dict = Depends(get_current_user)
+):
+    """
+    Citizen requests a status update on a stalled complaint.
+    Enforces ownership, inactivity threshold, and prevents spam via cooldown.
+    """
+    citizen_id = user["id"]
+    try:
+        req = await db.create_status_request(
+            complaint_id_or_report_id=id,
+            citizen_id=citizen_id,
+            message=payload.message
+        )
+        return req
+    except PermissionError as pe:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(pe))
+    except ValueError as ve:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
+
+
+@router.get("/{id}/status-requests", response_model=List[StatusRequestResponse])
+async def list_complaint_status_requests(
+    id: str,
+    user: Dict = Depends(get_current_user)
+):
+    """
+    Retrieves status update requests for a complaint.
+    Enforces that citizens can only access their own complaint follow-ups.
+    Authorities can view all status update requests.
+    """
+    is_authority = user.get("role") == "authority"
+    citizen_id = user["id"] if not is_authority else None
+
+    try:
+        requests = await db.get_status_requests(id, citizen_id=citizen_id, is_authority=is_authority)
+        return requests
+    except PermissionError as pe:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(pe))

@@ -32,6 +32,7 @@ class Database:
         self._memory_departments: List[Dict] = [dict(d) for d in DEFAULT_DEPARTMENTS]
         self._memory_status_history: List[Dict] = []
         self._memory_notifications: List[Dict] = []
+        self._memory_status_requests: List[Dict] = []
         self._report_seq = 1
         self._load_from_disk()
     def _get_storage_paths(self) -> List[Path]:
@@ -896,14 +897,307 @@ class Database:
         in_progress = sum(1 for c in user_complaints if c.get("status") in ["ASSIGNED", "IN_PROGRESS"])
         reopened = sum(1 for c in user_complaints if c.get("status") == "REOPENED" or c.get("citizen_reopened") is True)
         reported = sum(1 for c in user_complaints if c.get("status") == "REPORTED")
+        active = sum(1 for c in user_complaints if c.get("status") in ["REPORTED", "ASSIGNED", "IN_PROGRESS", "REOPENED"])
+
+        client = self._get_client()
+        remote_pending = 0
+        if client:
+            try:
+                res = client.table("complaint_status_requests").select("id", count="exact").eq("citizen_id", citizen_id).eq("status", "PENDING").execute()
+                if res.count is not None:
+                    remote_pending = res.count
+            except Exception:
+                pass
+
+        local_pending = sum(1 for r in self._memory_status_requests if str(r.get("citizen_id")) == str(citizen_id) and r.get("status") == "PENDING")
+        pending_requests = max(remote_pending, local_pending)
 
         return {
             "total_submitted": total,
+            "total_reports": total,
+            "active_reports": active,
             "resolved_count": resolved,
             "in_progress_count": in_progress,
             "reopened_count": reopened,
-            "reported_count": reported
+            "reported_count": reported,
+            "pending_status_requests": pending_requests
         }
+
+    async def get_nearby_issues(
+        self,
+        latitude: Optional[float] = None,
+        longitude: Optional[float] = None,
+        radius_km: float = 10.0,
+        problem_type: Optional[str] = None,
+        status: Optional[str] = None,
+        limit: int = 100
+    ) -> List[Dict]:
+        """
+        Public / Citizen discovery endpoint for nearby civic issues.
+        Zero citizen PII: strictly excludes citizen identity, private description, photos, contact details.
+        Applies coordinate approximation (~3 decimals, ~110m precision) to protect location privacy.
+        """
+        all_complaints = await self.get_complaints(limit=500)
+        filtered = []
+
+        for c in all_complaints:
+            # Check problem type filter
+            p_type = c.get("problem_type", "other")
+            if problem_type and problem_type.lower() != "all":
+                if p_type.lower() != problem_type.lower():
+                    continue
+
+            # Check status filter
+            c_status = c.get("status", "REPORTED")
+            if status and status.lower() != "all":
+                st_upper = status.upper()
+                if st_upper == "REPORTED":
+                    if c_status != "REPORTED":
+                        continue
+                elif st_upper in ["IN_PROGRESS", "IN PROGRESS", "ASSIGNED"]:
+                    if c_status not in ["ASSIGNED", "IN_PROGRESS", "REOPENED"]:
+                        continue
+                elif st_upper == "RESOLVED":
+                    if c_status != "RESOLVED":
+                        continue
+                else:
+                    if c_status.upper() != st_upper:
+                        continue
+
+            c_lat = c.get("latitude")
+            c_lng = c.get("longitude")
+            if c_lat is None or c_lng is None:
+                continue
+
+            dist_m = None
+            if latitude is not None and longitude is not None:
+                dist_m = haversine_distance_meters(latitude, longitude, float(c_lat), float(c_lng))
+                if dist_m > (radius_km * 1000.0):
+                    continue
+
+            # Privacy-safe extraction: approximate coordinates (3 decimals ~110m)
+            approx_lat = round(float(c_lat), 3)
+            approx_lng = round(float(c_lng), 3)
+
+            filtered.append({
+                "id": str(c.get("id")),
+                "report_id": c.get("report_id", ""),
+                "problem_type": p_type,
+                "severity": c.get("severity", "LOW"),
+                "status": c_status,
+                "location_name": c.get("location_name", "Local Area"),
+                "latitude": approx_lat,
+                "longitude": approx_lng,
+                "created_at": c.get("created_at"),
+                "_dist": dist_m if dist_m is not None else float("inf")
+            })
+
+        if latitude is not None and longitude is not None:
+            filtered.sort(key=lambda x: x["_dist"])
+        else:
+            filtered.sort(key=lambda x: str(x.get("created_at", "")), reverse=True)
+
+        for item in filtered:
+            item.pop("_dist", None)
+
+        return filtered[:limit]
+
+    async def check_similar_complaints(
+        self,
+        problem_type: str,
+        latitude: float,
+        longitude: float,
+        radius_km: float = 1.0,
+        max_age_days: int = 30,
+        limit: int = 5
+    ) -> List[Dict]:
+        """
+        Pre-submission check for similar civic issues near the proposed location.
+        Returns safe summary for citizen awareness without blocking legitimate reporting.
+        """
+        all_complaints = await self.get_complaints(limit=500)
+        now = datetime.now(timezone.utc)
+        cutoff = now - timedelta(days=max_age_days)
+
+        matches = []
+        for c in all_complaints:
+            # Check problem category
+            if c.get("problem_type", "").lower() != problem_type.lower():
+                continue
+
+            # Check recency
+            c_created = c.get("created_at")
+            if c_created:
+                try:
+                    c_dt = datetime.fromisoformat(str(c_created).replace("Z", "+00:00"))
+                    if c_dt < cutoff:
+                        continue
+                except Exception:
+                    pass
+
+            c_lat = c.get("latitude")
+            c_lng = c.get("longitude")
+            if c_lat is None or c_lng is None:
+                continue
+
+            dist_m = haversine_distance_meters(latitude, longitude, float(c_lat), float(c_lng))
+            if dist_m <= (radius_km * 1000.0):
+                matches.append({
+                    "id": str(c.get("id")),
+                    "report_id": c.get("report_id", ""),
+                    "problem_type": c.get("problem_type", problem_type),
+                    "location_name": c.get("location_name", "Nearby Location"),
+                    "severity": c.get("severity", "LOW"),
+                    "status": c.get("status", "REPORTED"),
+                    "distance_meters": round(dist_m, 1),
+                    "created_at": c.get("created_at")
+                })
+
+        matches.sort(key=lambda x: x["distance_meters"])
+        return matches[:limit]
+
+    async def create_status_request(
+        self,
+        complaint_id_or_report_id: str,
+        citizen_id: str,
+        message: Optional[str] = None
+    ) -> Dict:
+        """
+        Submits a citizen request for status update on a stalled complaint.
+        Validates ownership, inactivity threshold, and prevents request spam (cooldown & pending checks).
+        Generates real notification event.
+        """
+        complaint = await self.get_complaint_by_id(complaint_id_or_report_id, is_authority=True)
+        if not complaint:
+            raise ValueError("Complaint report not found.")
+
+        # 1. Enforce ownership: citizen can only request updates on own reports
+        if str(complaint.get("citizen_id")) != str(citizen_id):
+            raise PermissionError("Forbidden: You are not authorized to request status updates on another citizen's complaint.")
+
+        # 2. Check if complaint is already resolved
+        if complaint.get("status") == "RESOLVED":
+            raise ValueError("Cannot request a status update on a resolved complaint.")
+
+        now = datetime.now(timezone.utc)
+
+        # 3. Check inactivity threshold
+        history = complaint.get("status_history", [])
+        latest_ts_str = complaint.get("updated_at") or complaint.get("created_at")
+        if history and len(history) > 1:
+            latest_ts_str = history[-1].get("created_at") or latest_ts_str
+        elif history and len(history) == 1:
+            latest_ts_str = complaint.get("created_at") or history[0].get("created_at")
+
+        try:
+            latest_dt = datetime.fromisoformat(str(latest_ts_str).replace("Z", "+00:00"))
+        except Exception:
+            latest_dt = now
+
+        inactivity_limit = timedelta(hours=settings.STATUS_REQUEST_INACTIVITY_HOURS)
+        if (now - latest_dt) < inactivity_limit:
+            hours_elapsed = int((now - latest_dt).total_seconds() / 3600)
+            raise ValueError(
+                f"Status updates can only be requested after {settings.STATUS_REQUEST_INACTIVITY_HOURS} hours of inactivity. ({hours_elapsed} hours elapsed)"
+            )
+
+        # 4. Anti-spam & Cooldown Protection
+        existing_reqs = await self.get_status_requests(complaint["id"], citizen_id=citizen_id, is_authority=True)
+        # Check active pending request
+        pending = [r for r in existing_reqs if r.get("status") == "PENDING"]
+        if pending:
+            raise ValueError("A status update request is already pending review for this report.")
+
+        # Check cooldown
+        cooldown_limit = timedelta(hours=settings.STATUS_REQUEST_COOLDOWN_HOURS)
+        for r in existing_reqs:
+            rc = r.get("created_at")
+            if rc:
+                try:
+                    rc_dt = datetime.fromisoformat(str(rc).replace("Z", "+00:00"))
+                    if (now - rc_dt) < cooldown_limit:
+                        rem_hours = max(1, int((cooldown_limit - (now - rc_dt)).total_seconds() / 3600))
+                        raise ValueError(f"Follow-up request cooldown active. Please wait {rem_hours} hours before requesting another update.")
+                except ValueError:
+                    raise
+                except Exception:
+                    pass
+
+        # 5. Create real backend record
+        req_id = str(uuid.uuid4())
+        record = {
+            "id": req_id,
+            "complaint_id": complaint["id"],
+            "report_id": complaint["report_id"],
+            "citizen_id": citizen_id,
+            "problem_type": complaint.get("problem_type", "other"),
+            "location_name": complaint.get("location_name", "Local Area"),
+            "message": message.strip() if message else None,
+            "status": "PENDING",
+            "created_at": now.isoformat(),
+            "updated_at": now.isoformat()
+        }
+
+        self._memory_status_requests.append(record)
+
+        client = self._get_client()
+        if client:
+            try:
+                client.table("complaint_status_requests").insert(record).execute()
+            except Exception as e:
+                logger.warning(f"Failed to persist status request to Supabase ({e}). Stored locally.")
+
+        # 6. Generate real notification for citizen
+        await self.emit_notification(
+            citizen_id=citizen_id,
+            complaint_id=complaint["id"],
+            report_id=complaint["report_id"],
+            title="Status Update Requested",
+            message=f"Your follow-up request for {complaint['report_id']} was submitted to authorities.",
+            event_type="STATUS_UPDATE_REQUESTED"
+        )
+
+        return record
+
+    async def get_status_requests(
+        self,
+        complaint_id_or_report_id: str,
+        citizen_id: Optional[str] = None,
+        is_authority: bool = False
+    ) -> List[Dict]:
+        """
+        Retrieves status update requests for a complaint, enforcing ownership for citizens.
+        """
+        complaint = await self.get_complaint_by_id(complaint_id_or_report_id, is_authority=True)
+        if not complaint:
+            return []
+
+        if citizen_id and not is_authority:
+            if str(complaint.get("citizen_id")) != str(citizen_id):
+                raise PermissionError("Forbidden: You are not authorized to view status requests for this report.")
+
+        target_id = complaint["id"]
+        target_report_id = complaint.get("report_id")
+
+        client = self._get_client()
+        remote_data: List[Dict] = []
+        if client:
+            try:
+                res = client.table("complaint_status_requests").select("*").eq("complaint_id", target_id).order("created_at", desc=True).execute()
+                if res.data:
+                    remote_data = res.data
+            except Exception as e:
+                logger.debug(f"Failed to fetch remote status requests: {e}")
+
+        # Combine remote and memory
+        all_reqs = {r["id"]: r for r in remote_data}
+        for r in self._memory_status_requests:
+            if r.get("complaint_id") == target_id or r.get("report_id") == target_report_id:
+                all_reqs[r["id"]] = r
+
+        req_list = list(all_reqs.values())
+        req_list.sort(key=lambda x: str(x.get("created_at", "")), reverse=True)
+        return req_list
 
     async def get_public_summary(self, id_or_report_id: str) -> Optional[Dict]:
         """

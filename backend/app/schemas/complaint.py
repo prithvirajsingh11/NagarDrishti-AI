@@ -64,10 +64,67 @@ class CitizenNotification(BaseModel):
 class CitizenImpactSummary(BaseModel):
     total_submitted: int
     total_reports: int = 0
+    active_reports: int = 0
     resolved_count: int
     in_progress_count: int
     reopened_count: int
     reported_count: int = 0
+    pending_status_requests: int = 0
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class NearbyCivicIssue(BaseModel):
+    """
+    Privacy-safe public discovery representation of a civic complaint.
+    Strictly strips citizen identity, personal details, contact data, and private descriptions.
+    Uses approximate coordinates (~3 decimal places, ~100m) for public map rendering.
+    """
+    id: str
+    report_id: str
+    problem_type: str
+    severity: str
+    status: str
+    location_name: str
+    latitude: float
+    longitude: float
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SimilarComplaintSummary(BaseModel):
+    """
+    Pre-submission duplicate awareness representation.
+    Informs citizen of nearby reports for same category without blocking submission.
+    """
+    id: str
+    report_id: str
+    problem_type: str
+    location_name: str
+    severity: str
+    status: str
+    distance_meters: float
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class StatusRequestCreate(BaseModel):
+    message: Optional[str] = Field(None, max_length=300, description="Optional brief citizen note to authorities")
+
+
+class StatusRequestResponse(BaseModel):
+    id: str
+    complaint_id: str
+    report_id: str
+    citizen_id: str
+    problem_type: str
+    location_name: Optional[str] = None
+    message: Optional[str] = None
+    status: str = "PENDING"
+    created_at: datetime
+    updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
