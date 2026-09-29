@@ -324,7 +324,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, onSearch }) => {
                       </div>
                       <div className="text-[10.5px] text-slate-500 flex items-center gap-1 mt-1">
                         <Shield size={11} className="text-slate-400" />
-                        <span>Aadhaar/OTP Verified</span>
+                        <span>Verified Citizen Account</span>
                       </div>
                     </div>
 

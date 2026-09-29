@@ -160,9 +160,14 @@ async function parseErrorResponse(res: Response, defaultMsg: string): Promise<Er
           lower.includes('column') ||
           lower.includes('relation') ||
           lower.includes('psycopg') ||
-          lower.includes('traceback')
+          lower.includes('traceback') ||
+          lower.includes('api_key') ||
+          lower.includes('gemini') ||
+          lower.includes('google.genai') ||
+          lower.includes('quota') ||
+          lower.includes('resource_exhausted')
         ) {
-          // Never leak raw DB / SQL errors to the citizen
+          // Never leak raw DB / API secrets / system internals to citizen
           errMsg = defaultMsg;
         } else {
           errMsg = data.detail;
