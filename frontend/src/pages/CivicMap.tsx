@@ -181,7 +181,7 @@ export const CivicMap: React.FC<{ onReportNew?: () => void }> = ({ onReportNew }
   };
 
   return (
-    <div className="space-y-4 font-sans select-none max-w-5xl mx-auto">
+    <div className="space-y-4 font-sans select-none max-w-5xl mx-auto px-3 sm:px-4 pb-28 lg:pb-8">
       {/* Map Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/80 dark:border-slate-800">
         <div>
@@ -279,9 +279,9 @@ export const CivicMap: React.FC<{ onReportNew?: () => void }> = ({ onReportNew }
       </div>
 
       {/* Leaflet Map Card with Interactive Floating Controls */}
-      <div className="bg-white/90 dark:bg-slate-800/90 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-700/80 overflow-hidden shadow-xs h-[52vh] min-h-[340px] sm:h-[500px] relative transition-colors">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs h-[52vh] min-h-[340px] sm:h-[500px] relative transition-colors">
         {loading && issues.length === 0 ? (
-          <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xs flex items-center justify-center z-20">
+          <div className="absolute inset-0 bg-white/90 dark:bg-slate-900/90 flex items-center justify-center z-20">
             <div className="flex flex-col items-center gap-2">
               <Loader2 className="w-8 h-8 animate-spin text-[#0B2545] dark:text-blue-400" />
               <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">{t('map.loading')}</span>
@@ -292,12 +292,12 @@ export const CivicMap: React.FC<{ onReportNew?: () => void }> = ({ onReportNew }
         <div ref={mapContainerRef} className="w-full h-full z-10" />
 
         {/* Floating Quick Action Map Controls (Top Right) */}
-        <div className="absolute top-3 right-3 z-20 flex flex-col gap-1.5 shadow-md rounded-2xl overflow-hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 p-1">
+        <div className="absolute top-3 right-3 z-20 flex flex-col gap-1 shadow-xs rounded-xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-1">
           <button
             type="button"
             onClick={handleLocateMe}
             disabled={gpsLocating}
-            className="p-2.5 min-h-[40px] min-w-[40px] flex items-center justify-center rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 transition-colors cursor-pointer"
+            className="p-2.5 min-h-[40px] min-w-[40px] flex items-center justify-center rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 transition-colors cursor-pointer"
             title="Center on my location"
             aria-label="Center on my location"
           >
@@ -306,7 +306,7 @@ export const CivicMap: React.FC<{ onReportNew?: () => void }> = ({ onReportNew }
           <button
             type="button"
             onClick={handleResetView}
-            className="p-2.5 min-h-[40px] min-w-[40px] flex items-center justify-center rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 transition-colors cursor-pointer"
+            className="p-2.5 min-h-[40px] min-w-[40px] flex items-center justify-center rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 transition-colors cursor-pointer"
             title="Reset city center"
             aria-label="Reset view to city center"
           >
@@ -315,7 +315,7 @@ export const CivicMap: React.FC<{ onReportNew?: () => void }> = ({ onReportNew }
         </div>
 
         {/* Floating Incident Count Badge (Bottom Left) */}
-        <div className="absolute bottom-3 left-3 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-xl sm:rounded-2xl shadow-sm text-[11px] sm:text-xs font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-1.5 sm:gap-2">
+        <div className="absolute bottom-3 left-3 z-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-xl shadow-xs text-[11px] sm:text-xs font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-1.5 sm:gap-2">
           <MapPin size={12} className="text-[#0B2545] dark:text-blue-400 shrink-0" />
           <span>{issues.length} {issues.length === 1 ? t('map.incident_plotted') : t('map.incidents_plotted')}</span>
         </div>
@@ -336,10 +336,10 @@ export const CivicMap: React.FC<{ onReportNew?: () => void }> = ({ onReportNew }
                   key={issue.id || issue.report_id}
                   type="button"
                   onClick={() => handleFocusIssue(issue)}
-                  className={`min-w-[180px] p-2.5 rounded-2xl border text-left transition-all shrink-0 cursor-pointer ${
+                  className={`min-w-[180px] p-2.5 rounded-xl border text-left transition-all shrink-0 cursor-pointer ${
                     isSelected
                       ? 'bg-blue-50 dark:bg-blue-950/60 border-blue-300 dark:border-blue-700 shadow-xs'
-                      : 'bg-white/90 dark:bg-slate-800/90 border-slate-200/80 dark:border-slate-700/80 hover:border-slate-300'
+                      : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-slate-300'
                   }`}
                 >
                   <div className="flex items-center justify-between text-[10px] mb-1">

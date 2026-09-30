@@ -12,7 +12,10 @@ import { CivicMap } from './pages/CivicMap';
 import { HelpSupport } from './pages/HelpSupport';
 import { PublicStatusTracker } from './pages/PublicStatusTracker';
 import { AuthPage, type AuthMode } from './pages/AuthPage';
+import { AuthorityDashboard } from './pages/AuthorityDashboard';
 import { useAuth } from './context/AuthContext';
+import { App as CapApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 
 export function App() {
   const { isLoggedIn, loading } = useAuth();
@@ -65,6 +68,8 @@ export function App() {
         setCurrentView('my-reports');
       } else if (hash === 'map') {
         setCurrentView('map');
+      } else if (hash === 'authority') {
+        setCurrentView('authority');
       } else if (hash === 'help') {
         setCurrentView('help');
       } else if (hash === 'home') {
@@ -99,6 +104,44 @@ export function App() {
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, [isLoggedIn, loading, authReturnTo, previousView]);
+
+  // Android Native Hardware/Gesture Back Button Handling
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    let backHandle: any = null;
+    CapApp.addListener('backButton', ({ canGoBack }) => {
+      // 1. If mobile menu/drawer is open, close it
+      if (mobileMenuOpen) {
+        setMobileMenuOpen(false);
+        return;
+      }
+      // 2. If inside subviews, navigate back to home
+      if (currentView !== 'home') {
+        if (currentView === 'report') {
+          // Check step handling or return to home
+          navigateTo('home');
+        } else {
+          navigateTo('home');
+        }
+        return;
+      }
+      // 3. If on home and cannot go back in history, exit app
+      if (!canGoBack) {
+        CapApp.exitApp();
+      } else {
+        window.history.back();
+      }
+    }).then((handle) => {
+      backHandle = handle;
+    });
+
+    return () => {
+      if (backHandle) {
+        backHandle.remove();
+      }
+    };
+  }, [mobileMenuOpen, currentView]);
 
   // Reactive auto-redirect: whenever authenticated citizen is on 'auth' view, immediately redirect
   useEffect(() => {
@@ -184,7 +227,7 @@ export function App() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAFBFD] dark:bg-[#171513] text-slate-900 dark:text-slate-100 font-sans antialiased transition-colors duration-200">
+    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans antialiased transition-colors duration-200">
       {/* Top Header Navbar */}
       <Navbar
         currentView={currentView}
@@ -236,6 +279,8 @@ export function App() {
           {currentView === 'map' && (
             <CivicMap onReportNew={() => navigateTo('report')} />
           )}
+
+          {currentView === 'authority' && <AuthorityDashboard />}
 
           {currentView === 'track' && (
             <PublicStatusTracker

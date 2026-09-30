@@ -16,26 +16,17 @@
     margin: 0;
     font-family: var(--font-sans);
     color: #0f172a;
-    background-color: #faf9f6;
-    /* Subtle minimalist Indian flag ambient gradient on creamy-white surface */
-    background-image: 
-      radial-gradient(130% 40% at 50% -5%, rgba(255, 153, 51, 0.08) 0%, rgba(250, 249, 246, 0) 100%),
-      radial-gradient(130% 40% at 50% 105%, rgba(19, 136, 8, 0.07) 0%, rgba(250, 249, 246, 0) 100%);
-    background-attachment: fixed;
-    background-repeat: no-repeat;
+    background-color: #f8fafc;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
-  /* Luxurious Creamy Warm Dark Mode */
+  /* Clean Professional Dark Mode */
   html.dark body {
-    color: #f7ede2;
-    background-color: #171513; /* Deep creamy roasted espresso */
-    background-image: 
-      radial-gradient(130% 40% at 50% -5%, rgba(245, 166, 35, 0.08) 0%, rgba(23, 21, 19, 0) 100%),
-      radial-gradient(130% 40% at 50% 105%, rgba(34, 197, 94, 0.05) 0%, rgba(23, 21, 19, 0) 100%);
+    color: #f1f5f9;
+    background-color: #0f172a;
   }
 
   /* Remap slate tokens in dark mode to warm velvety creamy hues */
@@ -94,9 +85,10 @@ html.dark ::-webkit-scrollbar-thumb:hover {
 /* Touch manipulation & input accessibility */
 button, a, input, select, textarea {
   touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* Prevent iOS Safari auto-zoom on form inputs by guaranteeing 16px base font on mobile */
+/* Prevent auto-zoom & keep comfortable readable text on Android */
 @media (max-width: 640px) {
   input[type="text"],
   input[type="email"],
@@ -105,7 +97,21 @@ button, a, input, select, textarea {
   textarea,
   select {
     font-size: 16px !important;
+    scroll-margin-top: 90px;
   }
+}
+
+/* Android Safe Area Utilities */
+.safe-top {
+  padding-top: max(env(safe-area-inset-top, 0px), 0px);
+}
+
+.safe-bottom {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 12px);
+}
+
+.safe-mb {
+  margin-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
 }
 
 /* Leaflet map styles with warm creamy night filter in dark mode */
@@ -119,5 +125,19 @@ button, a, input, select, textarea {
 
 html.dark .leaflet-tile {
   filter: brightness(0.78) invert(1) contrast(2.3) hue-rotate(170deg) sepia(0.38) saturate(0.85);
+}
+
+/* Leaflet Mobile Touch Optimization */
+@media (max-width: 640px) {
+  .leaflet-touch .leaflet-bar a {
+    width: 36px;
+    height: 36px;
+    line-height: 36px;
+    font-size: 16px;
+  }
+  .leaflet-popup-content-wrapper {
+    border-radius: 1rem;
+    padding: 2px;
+  }
 }
 

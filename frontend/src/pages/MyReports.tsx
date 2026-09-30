@@ -79,6 +79,21 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
   const [statusRequestFeedback, setStatusRequestFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [copiedShare, setCopiedShare] = useState<boolean>(false);
 
+  // Android Back gesture / button handling: return to list when detail is open
+  useEffect(() => {
+    if (!mobileDetailOpen) return;
+
+    window.history.pushState({ view: 'report_detail' }, '');
+    const handlePopState = () => {
+      setMobileDetailOpen(false);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [mobileDetailOpen]);
+
   useEffect(() => {
     setLoading(true);
     setErrorMessage(null);
@@ -438,7 +453,7 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+    <div className="max-w-4xl mx-auto px-3 sm:px-4 pt-4 sm:pt-6 pb-28 lg:pb-8 space-y-5 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/80 dark:border-slate-800">
         <div>
           <h1 className="text-lg font-bold text-slate-900 dark:text-white">{t('myreports.title')}</h1>
@@ -463,12 +478,12 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t('myreports.search_placeholder')}
-            className="w-full pl-9 pr-3.5 py-2.5 sm:py-2 bg-white/80 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700/80 rounded-lg text-xs sm:text-xs text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-hidden focus:border-slate-400 dark:focus:border-slate-500 shadow-2xs"
+            className="w-full pl-9 pr-3.5 py-2.5 sm:py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs sm:text-xs text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-hidden focus:border-slate-400 dark:focus:border-slate-500 shadow-2xs"
           />
         </div>
 
         {/* Status Filter Tabs - Horizontally scrollable on mobile */}
-        <div className="flex overflow-x-auto no-scrollbar items-center gap-1.5 p-1 bg-slate-100/90 dark:bg-slate-800/90 rounded-xl border border-slate-200/70 dark:border-slate-700/70 text-xs">
+        <div className="flex overflow-x-auto no-scrollbar items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200/80 dark:border-slate-700 text-xs">
           {(
             [
               { key: 'ALL', label: t('myreports.status_all') },
@@ -520,11 +535,11 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
           )}
         </div>
       ) : loading ? (
-        <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xs rounded-xl p-8 text-center text-xs text-slate-500 dark:text-slate-400 border border-slate-200/80 dark:border-slate-700/80">
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-8 text-center text-xs text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 shadow-xs">
           {t('myreports.loading')}
         </div>
       ) : filteredComplaints.length === 0 ? (
-        <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xs rounded-xl p-8 text-center text-xs text-slate-500 dark:text-slate-400 border border-slate-200/80 dark:border-slate-700/80 space-y-3">
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-8 text-center text-xs text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 space-y-3 shadow-xs">
           <p>{t('myreports.empty')}</p>
           <button
             onClick={onStartNewReport}
@@ -546,10 +561,10 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                     setActiveComplaint(c);
                     setMobileDetailOpen(true);
                   }}
-                  className={`bg-white dark:bg-slate-800/90 rounded-xl p-3.5 sm:p-4 border transition-all cursor-pointer ${
+                  className={`bg-white dark:bg-slate-800 rounded-xl p-3.5 sm:p-4 border transition-all cursor-pointer ${
                     isSelected
-                      ? 'border-slate-900 dark:border-blue-500 ring-2 ring-slate-900/10 dark:ring-blue-500/20 shadow-sm'
-                      : 'border-slate-200/90 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 shadow-xs'
+                      ? 'border-slate-900 dark:border-blue-500 bg-slate-50/50 dark:bg-slate-800 shadow-xs'
+                      : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 shadow-xs'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2 mb-2">
@@ -608,7 +623,7 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                 <button
                   type="button"
                   onClick={() => setMobileDetailOpen(false)}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/80 dark:hover:bg-slate-600 px-3 py-2 rounded-lg transition-colors cursor-pointer min-h-[38px] active:scale-95"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/80 dark:hover:bg-slate-600 px-3 py-2 rounded-lg transition-colors cursor-pointer min-h-[38px]"
                 >
                   <ArrowLeft size={15} />
                   <span>{t('common.back', 'Back to Reports')}</span>
@@ -697,6 +712,27 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                 </div>
               )}
 
+              {/* Primary Civic Issue Photograph */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-white">
+                    <ProblemIcon type={activeComplaint.problem_type} size={15} />
+                    <span className="capitalize">{getProblemLabel(activeComplaint.problem_type, t)}</span>
+                  </div>
+                  <SeverityBadge severity={activeComplaint.severity} size="sm" />
+                </div>
+                <div className="h-48 sm:h-64 w-full rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 relative shadow-inner">
+                  <img
+                    src={resolveControlledImageUrl(activeComplaint.image_url)}
+                    alt={activeComplaint.problem_type}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute bottom-2 left-2 bg-slate-900/90 text-white text-[10px] font-medium px-2 py-0.5 rounded-md">
+                    Reported Evidence Photo
+                  </div>
+                </div>
+              </div>
+
               {/* 1. Data-Driven Lifecycle Timeline */}
               <div className="bg-slate-50/80 dark:bg-slate-900/60 rounded-xl p-4 border border-slate-200/80 dark:border-slate-700/80 space-y-3 font-sans">
                 <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
@@ -742,7 +778,7 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                               </div>
                             ) : isLast ? (
                               <div className="w-5 h-5 rounded-full bg-white dark:bg-slate-800 border-2 border-slate-900 dark:border-blue-400 flex items-center justify-center">
-                                <div className="w-2 h-2 rounded-full bg-slate-900 dark:bg-blue-400 animate-pulse" />
+                                <div className="w-2 h-2 rounded-full bg-slate-900 dark:bg-blue-400" />
                               </div>
                             ) : (
                               <div className="w-5 h-5 rounded-full bg-slate-800 dark:bg-slate-700 text-white flex items-center justify-center shadow-xs">
@@ -801,7 +837,7 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                               </div>
                             ) : stage.status === 'current' ? (
                               <div className="w-5 h-5 rounded-full bg-white dark:bg-slate-800 border-2 border-slate-900 dark:border-blue-400 flex items-center justify-center">
-                                <div className="w-2 h-2 rounded-full bg-slate-900 dark:bg-blue-400 animate-pulse" />
+                                <div className="w-2 h-2 rounded-full bg-slate-900 dark:bg-blue-400" />
                               </div>
                             ) : (
                               <div className="w-5 h-5 rounded-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 flex items-center justify-center">
@@ -1017,19 +1053,7 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                     </div>
                   </div>
                 </div>
-              ) : (
-                /* Single Citizen Photo preview when not yet resolved with evidence */
-                <div className="space-y-1.5">
-                  <div className="text-xs font-semibold text-slate-700 dark:text-slate-300">Citizen Evidence Photograph</div>
-                  <div className="h-48 w-full rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600">
-                    <img
-                      src={getControlledImageUrl(activeComplaint.image_url)}
-                      alt={activeComplaint.problem_type}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </div>
-              )}
+              ) : null}
 
               {/* 5. Citizen Status Follow-Up Request */}
               {activeComplaint.status !== 'RESOLVED' &&

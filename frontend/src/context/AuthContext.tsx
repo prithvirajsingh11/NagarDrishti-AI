@@ -6,7 +6,7 @@ export interface CitizenUser {
   id: string;
   name: string;
   email: string;
-  role: 'citizen';
+  role: 'citizen' | 'authority';
   registeredAt?: string;
 }
 
@@ -16,6 +16,9 @@ interface AuthContextType {
   session: Session | null;
   token: string | null;
   isLoggedIn: boolean;
+  isAuthority: boolean;
+  activeRole: 'citizen' | 'authority';
+  setActiveRole: (role: 'citizen' | 'authority') => void;
   loading: boolean;
   authLoading: boolean;
   signup: (data: { name: string; email: string; password: string }) => Promise<{
@@ -36,12 +39,19 @@ function extractCitizenProfile(authUser: User | null): CitizenUser | null {
   const meta = authUser.user_metadata || {};
   const email = authUser.email || '';
   const fullName = meta.full_name || meta.name || email.split('@')[0] || 'Citizen';
+  const role: 'citizen' | 'authority' =
+    meta.role === 'authority' ||
+    meta.role === 'officer' ||
+    meta.role === 'admin' ||
+    ['authority', 'officer', 'admin', 'municipal'].some((k) => email.toLowerCase().includes(k))
+      ? 'authority'
+      : 'citizen';
 
   return {
     id: authUser.id,
     name: fullName,
     email,
-    role: 'citizen',
+    role,
     registeredAt: authUser.created_at,
   };
 }
@@ -49,6 +59,7 @@ function extractCitizenProfile(authUser: User | null): CitizenUser | null {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [citizen, setCitizen] = useState<CitizenUser | null>(null);
+  const [activeRole, setActiveRole] = useState<'citizen' | 'authority'>('citizen');
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -309,6 +320,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         session,
         token,
         isLoggedIn: !!session && !!citizen,
+        isAuthority: citizen?.role === 'authority' || activeRole === 'authority',
+        activeRole,
+        setActiveRole,
         loading,
         authLoading: loading,
         signup,

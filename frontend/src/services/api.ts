@@ -14,6 +14,7 @@ import type {
   SimilarComplaintSummary,
   StatusRequestResponse
 } from '../types/complaint';
+import { Capacitor } from '@capacitor/core';
 import { supabase } from './supabaseClient';
 
 const RAW_API_BASE = (
@@ -22,10 +23,15 @@ const RAW_API_BASE = (
   ''
 ).trim();
 
+// On mobile native app (Capacitor), fallback to local machine IP if env is empty
+const DEFAULT_MOBILE_HOST = 'http://192.168.1.5:8000';
+
 export const API_BASE = RAW_API_BASE
   ? (RAW_API_BASE.replace(/\/+$/, '').endsWith('/api')
       ? RAW_API_BASE.replace(/\/+$/, '')
       : `${RAW_API_BASE.replace(/\/+$/, '')}/api`)
+  : Capacitor.isNativePlatform()
+  ? `${DEFAULT_MOBILE_HOST}/api`
   : '/api';
 
 export function resolveApiUrl(path: string): string {
@@ -181,6 +187,18 @@ async function parseErrorResponse(res: Response, defaultMsg: string): Promise<Er
   return new Error(errMsg);
 }
 
+export async function parseJsonResponse<T>(res: Response, defaultError: string): Promise<T> {
+  const contentType = res.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    throw new Error('Unable to connect to NagarDrishti AI backend. Please verify your phone is on the same Wi-Fi network as the backend server.');
+  }
+  try {
+    return await res.json();
+  } catch {
+    throw new Error(defaultError);
+  }
+}
+
 export async function analyzeCivicImage(file: File): Promise<CivicDetectionResult> {
   const formData = new FormData();
   formData.append('file', file);
@@ -196,7 +214,7 @@ export async function analyzeCivicImage(file: File): Promise<CivicDetectionResul
     throw await parseErrorResponse(res, 'AI analysis is temporarily unavailable. Please try again.');
   }
 
-  return res.json();
+  return parseJsonResponse<CivicDetectionResult>(res, 'Failed to parse AI detection results.');
 }
 
 export async function uploadComplaintImage(file: File): Promise<string> {
@@ -217,7 +235,10 @@ export async function uploadComplaintImage(file: File): Promise<string> {
     );
   }
 
-  const data = await res.json();
+  const data = await parseJsonResponse<{ image_url: string }>(
+    res,
+    'Failed to parse uploaded image response.'
+  );
   return data.image_url;
 }
 
@@ -233,7 +254,7 @@ export async function createComplaint(payload: ComplaintCreate): Promise<Complai
     throw await parseErrorResponse(res, 'Unable to submit your report. Please try again.');
   }
 
-  return res.json();
+  return parseJsonResponse<Complaint>(res, 'Failed to parse created complaint response.');
 }
 
 export async function getComplaints(filters?: {
@@ -270,13 +291,17 @@ export async function getComplaintById(id: string): Promise<Complaint> {
 
 export async function updateComplaintStatus(
   id: string,
-  status: ComplaintStatus
+  status: ComplaintStatus,
+  resolutionImageUrl?: string | null
 ): Promise<Complaint> {
   const headers = await getJsonAuthHeaders();
   const res = await apiFetch(`${API_BASE}/complaints/${id}/status`, {
     method: 'PATCH',
     headers,
-    body: JSON.stringify({ status }),
+    body: JSON.stringify({
+      status,
+      resolution_image_url: resolutionImageUrl || null,
+    }),
   });
 
   if (!res.ok) {

@@ -181,7 +181,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   if (isLoggedIn && citizen) {
     return (
       <div className="max-w-md mx-auto px-4 py-16 text-center">
-        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-sm p-8 space-y-4">
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs p-8 space-y-4">
           <div className="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center">
             <CheckCircle2 size={24} />
           </div>
@@ -214,10 +214,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         <span>{t('report.back', 'Back')}</span>
       </button>
 
-      <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-sm overflow-hidden">
-        {/* Subtle Indian tricolor hairline indicator */}
-        <div className="h-1 w-full bg-gradient-to-r from-[#FF9933] via-slate-200 to-[#138808]" />
-
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
         <div className="p-6 sm:p-7 space-y-6">
           {/* Header */}
           <div className="text-center space-y-1.5">
@@ -430,7 +427,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full min-h-[44px] py-2.5 px-4 bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-700 disabled:bg-slate-400 dark:disabled:bg-slate-700 text-white font-medium text-xs rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-xs active:scale-[0.99]"
+                className="w-full min-h-[44px] py-2.5 px-4 bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-700 disabled:bg-slate-400 dark:disabled:bg-slate-700 text-white font-medium text-xs rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-xs"
               >
                 {submitting ? (
                   <>
@@ -509,7 +506,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full min-h-[44px] py-2.5 px-4 bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-700 disabled:bg-slate-400 dark:disabled:bg-slate-700 text-white font-medium text-xs rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-xs active:scale-[0.99]"
+                className="w-full min-h-[44px] py-2.5 px-4 bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-700 disabled:bg-slate-400 dark:disabled:bg-slate-700 text-white font-medium text-xs rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-xs"
               >
                 {submitting ? (
                   <>
@@ -553,7 +550,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full min-h-[44px] py-2.5 px-4 bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-700 disabled:bg-slate-400 dark:disabled:bg-slate-700 text-white font-medium text-xs rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-xs active:scale-[0.99]"
+                className="w-full min-h-[44px] py-2.5 px-4 bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-700 disabled:bg-slate-400 dark:disabled:bg-slate-700 text-white font-medium text-xs rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-xs"
               >
                 {submitting ? (
                   <>

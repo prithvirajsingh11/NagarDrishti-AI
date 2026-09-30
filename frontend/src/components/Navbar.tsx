@@ -8,7 +8,6 @@ import {
   Shield,
   Menu,
   X,
-  Sparkles,
   ArrowRight,
 } from 'lucide-react';
 import { AshokaEmblem, NagarDrishtiLogo } from './CivicEmblems';
@@ -107,14 +106,17 @@ export const Navbar: React.FC<NavbarProps> = ({
   ];
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-colors">
+    <header
+      className="sticky top-0 z-40 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-2xs transition-colors safe-top"
+      style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 0px)' }}
+    >
       <div className="max-w-[1520px] mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-15 sm:h-16 gap-2 sm:gap-4">
           {/* Left: Emblem of India + NagarDrishti AI Brand */}
           <div className="flex items-center gap-2 sm:gap-4 shrink-0 min-w-0">
             {/* National Emblem of India */}
             <div
-              className="flex items-center cursor-pointer transition-transform hover:scale-105 shrink-0"
+              className="flex items-center cursor-pointer hover:opacity-90 transition-opacity shrink-0"
               onClick={() => onNavigate('home')}
               title={t('footer.govt', 'Government of India')}
             >
@@ -243,13 +245,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <Bell size={18} />
                 {hasUnreadNotifications && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900 animate-pulse" />
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900" />
                 )}
               </button>
 
               {/* Responsive Notifications Popover */}
               {notificationsOpen && (
-                <div className="fixed inset-x-3 top-16 sm:absolute sm:inset-x-auto sm:top-full sm:right-0 mt-2 sm:w-96 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-3 z-50 animate-in fade-in slide-in-from-top-2 duration-150 text-xs font-sans">
+                <div className="fixed inset-x-3 top-16 sm:absolute sm:inset-x-auto sm:top-full sm:right-0 mt-2 sm:w-96 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg p-3 z-50 animate-in fade-in duration-100 text-xs font-sans">
                   <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800">
                     <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-white">
                       <Bell size={14} className="text-amber-500" />
@@ -266,7 +268,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     )}
                   </div>
                   <div className="py-2 space-y-2 max-h-72 overflow-y-auto">
-                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-800 space-y-1">
+                    <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 space-y-1">
                       <div className="flex items-center justify-between">
                         <span className="font-semibold text-emerald-700 dark:text-emerald-400 text-[11px] flex items-center gap-1">
                           <CheckCircle2 size={12} /> Work Completed
@@ -275,10 +277,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                       </div>
                       <p className="text-slate-700 dark:text-slate-300 text-xs">Pothole repair at MP Nagar Zone-1 verified by municipal engineer.</p>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-800 space-y-1">
+                    <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="font-semibold text-blue-700 dark:text-blue-400 text-[11px] flex items-center gap-1">
-                          <Sparkles size={12} /> AI Civic Grid Active
+                        <span className="font-semibold text-slate-700 dark:text-slate-300 text-[11px] flex items-center gap-1">
+                          <Shield size={12} className="text-blue-600 dark:text-blue-400" /> Civic Grid Update
                         </span>
                         <span className="text-[10px] text-slate-400">1h ago</span>
                       </div>
@@ -344,6 +346,20 @@ export const Navbar: React.FC<NavbarProps> = ({
                       </div>
                     </div>
 
+                    <div className="pt-1.5 pb-1 border-t border-slate-100 dark:border-slate-800">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setProfileOpen(false);
+                          onNavigate('authority');
+                        }}
+                        className="w-full text-xs text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 font-semibold py-1.5 px-2.5 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer text-left"
+                      >
+                        <Shield size={12} />
+                        <span>{t('nav.authority', 'Authority Command')}</span>
+                      </button>
+                    </div>
+
                     <div className="pt-1 flex items-center justify-between gap-2 border-t border-slate-100 dark:border-slate-800">
                       <button
                         type="button"
@@ -403,7 +419,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Mobile Navigation Drawer with Backdrop */}
         {isMenuOpen && (
-          <div className="lg:hidden fixed inset-0 top-15 z-50 flex flex-col bg-white/98 dark:bg-slate-900/98 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 overflow-y-auto p-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="lg:hidden fixed inset-0 top-15 z-50 flex flex-col bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 overflow-y-auto p-4 space-y-4 animate-in fade-in duration-150">
             {/* Profile info if logged in */}
             {isLoggedIn && citizen ? (
               <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between">
@@ -537,6 +553,24 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <span>{t('nav.help', 'Help & Citizen Support')}</span>
                 <span className="text-[11px] text-slate-400">06</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  onNavigate('authority');
+                  closeMenu();
+                }}
+                className={`p-3 rounded-2xl text-left transition-colors flex items-center justify-between border border-blue-200 dark:border-blue-900 ${
+                  currentView === 'authority'
+                    ? 'bg-blue-600 text-white font-semibold shadow-xs'
+                    : 'bg-blue-50/60 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-semibold'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Shield size={14} />
+                  <span>{t('nav.authority', 'Authority Command')}</span>
+                </div>
+                <span className="text-[11px]">⚡</span>
               </button>
             </div>
 

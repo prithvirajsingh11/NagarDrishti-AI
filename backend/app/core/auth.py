@@ -66,7 +66,7 @@ async def get_current_user(
             user_email = user.email or ""
             metadata = user.user_metadata or {}
             full_name = metadata.get("full_name", user_email.split("@")[0] if user_email else "Citizen")
-            role = "citizen"
+            role = metadata.get("role") or ("authority" if any(k in user_email.lower() for k in ("authority", "officer", "admin")) else "citizen")
 
             # Check profile role in profiles table
             try:

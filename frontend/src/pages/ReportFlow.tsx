@@ -15,7 +15,6 @@ import {
   MapPin,
   Map as MapIcon,
   MoreHorizontal,
-  Sparkles,
   Trash2,
   Droplets,
   User,
@@ -39,6 +38,7 @@ import { LocationPicker, DEFAULT_MAP_CENTER } from '../components/LocationPicker
 import { RoadIcon, IndianFlagGraphic } from '../components/CivicEmblems';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
+import { optimizeImageForUpload } from '../utils/imageOptimizer';
 
 interface ReportFlowProps {
   onCancel: () => void;
@@ -193,18 +193,28 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
     );
   }
 
-  // Handle local file selection with strict validation
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  // Handle local file selection with strict validation & Android-friendly client optimization
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
+      const rawFile = e.target.files[0];
       const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
-      if (!validTypes.includes(file.type.toLowerCase()) || file.size > 10 * 1024 * 1024) {
+      if (!validTypes.includes(rawFile.type.toLowerCase()) || rawFile.size > 10 * 1024 * 1024) {
         setAnalyzingError('Please upload a valid image (JPG, PNG, WEBP - Max 10MB).');
         return;
       }
-      setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
-      setAnalyzingError(null);
+      try {
+        const optimized = await optimizeImageForUpload(rawFile);
+        setSelectedFile(optimized);
+        setPreviewUrl(URL.createObjectURL(optimized));
+        setAnalyzingError(null);
+      } catch (err: any) {
+        // Fallback to original file if client optimization encounters an issue
+        setSelectedFile(rawFile);
+        setPreviewUrl(URL.createObjectURL(rawFile));
+        setAnalyzingError(null);
+      }
     }
   };
 
@@ -255,10 +265,11 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
     }
   };
 
-  // Submit final complaint
+  // Submit final complaint with double-submission protection
   const handleSubmitComplaint = async () => {
-    if (!selectedFile || !aiResult) return;
+    if (!selectedFile || !aiResult || isSubmitting) return;
 
+    setIsSubmitting(true);
     setCurrentStep('submitting');
     try {
       // 1. Upload image to Supabase Storage
@@ -287,6 +298,8 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
       if (errMsg.toLowerCase().includes('session has expired') && onRequireAuth) {
         setTimeout(() => onRequireAuth(), 1200);
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -313,7 +326,7 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
   const stepNumber = getStepNumber();
 
   return (
-    <div className="w-full font-sans select-none">
+    <div className="w-full font-sans select-none pb-28 lg:pb-8">
       {/* Hidden file inputs for Camera vs Gallery */}
       <input
         ref={cameraInputRef}
@@ -438,7 +451,7 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
                         type="button"
                         onClick={handleStartAnalysis}
                         disabled={isAnalyzing}
-                        className="w-full sm:flex-1 py-3 px-5 bg-[#0B2545] hover:bg-[#07192f] dark:bg-blue-600 dark:hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold rounded-xl flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
+                        className="w-full sm:flex-1 py-2.5 px-5 bg-[#0B2545] hover:bg-[#07192f] dark:bg-blue-600 dark:hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold rounded-xl flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
                       >
                         {isAnalyzing ? (
                           <>
@@ -447,7 +460,6 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
                           </>
                         ) : (
                           <>
-                            <Sparkles size={16} className="text-amber-300" />
                             <span>Use Photo & Run AI Analysis</span>
                             <ArrowRight size={16} />
                           </>
@@ -474,16 +486,16 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
                       <button
                         type="button"
                         onClick={() => cameraInputRef.current?.click()}
-                        className="w-full py-3 px-6 bg-[#0B2545] hover:bg-[#07192f] dark:bg-blue-600 dark:hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold rounded-xl flex items-center justify-center gap-2.5 shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-98"
+                        className="w-full py-2.5 px-6 bg-[#0B2545] hover:bg-[#07192f] dark:bg-blue-600 dark:hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold rounded-xl flex items-center justify-center gap-2.5 shadow-xs transition-colors cursor-pointer"
                       >
-                        <Camera size={16} strokeWidth={2.2} />
+                        <Camera size={16} strokeWidth={2} />
                         <span>{t('report.take_photo', 'Take Photo')}</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => galleryInputRef.current?.click()}
-                        className="w-full py-3 px-6 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-medium rounded-xl flex items-center justify-center gap-2.5 transition-colors cursor-pointer shadow-2xs active:scale-98"
+                        className="w-full py-2.5 px-6 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-medium rounded-xl flex items-center justify-center gap-2.5 transition-colors cursor-pointer shadow-2xs"
                       >
                         <ImageIcon size={16} />
                         <span>{t('report.choose_gallery', 'Choose from Gallery')}</span>
@@ -494,7 +506,7 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
                     <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800 w-full max-w-md">
                       <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-2 flex items-center justify-between">
                         <span className="flex items-center gap-1.5">
-                          <Sparkles size={11} className="text-amber-500" />
+                          <ImageIcon size={12} className="text-slate-400" />
                           <span>{t('report.demo_pack', 'Quick Demo Samples')}:</span>
                         </span>
                         <span className="text-[10px] text-slate-400 font-normal">
@@ -663,7 +675,7 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
                 type="button"
                 onClick={handleStartAnalysis}
                 disabled={isAnalyzing}
-                className="w-full py-3.5 px-6 bg-[#0B2545] hover:bg-[#07192f] dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm rounded-2xl flex items-center justify-center gap-2.5 shadow-md hover:shadow-lg transition-all cursor-pointer mt-2"
+                className="w-full py-3 px-6 bg-[#0B2545] hover:bg-[#07192f] dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm rounded-xl flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer mt-2"
               >
                 {isAnalyzing ? (
                   <>
@@ -672,7 +684,6 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
                   </>
                 ) : (
                   <>
-                    <Sparkles size={16} className="text-amber-300" />
                     <span>{t('report.analyze_btn', 'Analyze with AI')}</span>
                     <ArrowRight size={16} />
                   </>
@@ -683,9 +694,9 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
 
           {/* ================= STEP 2: ANALYZING ================= */}
           {currentStep === 'analyzing' && (
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200/90 dark:border-slate-800 text-center space-y-5 shadow-xs transition-colors">
-              <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-[#1D4ED8] dark:text-blue-400 flex items-center justify-center mx-auto shadow-xs">
-                <Sparkles size={28} />
+            <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 sm:p-8 border border-slate-200/90 dark:border-slate-800 text-center space-y-5 shadow-xs transition-colors">
+              <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-[#1D4ED8] dark:text-blue-400 flex items-center justify-center mx-auto shadow-xs">
+                <Loader2 size={24} className="animate-spin" />
               </div>
 
               <div className="space-y-1">
@@ -763,11 +774,11 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
               )}
 
               {/* Main AI Result Presentation Card */}
-              <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs transition-colors">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs transition-colors">
                 {/* AI Card Header */}
                 <div className="bg-[#0B2545] dark:bg-slate-800 text-white p-4 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Sparkles size={16} className="text-amber-400" />
+                    <CheckCircle2 size={16} className="text-blue-400" />
                     <span className="font-bold text-xs tracking-tight uppercase">
                       AI Detection Result
                     </span>
@@ -868,9 +879,9 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
                   )}
 
                   {/* User Understanding Prompt */}
-                  <div className="p-3 rounded-2xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/60 flex items-start gap-2.5">
-                    <Sparkles size={15} className="text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
-                    <div className="text-[11px] text-blue-950 dark:text-blue-200 leading-snug">
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-start gap-2.5">
+                    <Lightbulb size={15} className="text-slate-600 dark:text-slate-400 shrink-0 mt-0.5" />
+                    <div className="text-[11px] text-slate-700 dark:text-slate-300 leading-snug">
                       <span className="font-bold">What did the AI detect?</span> Category: {getProblemLabel(editedProblemType, t)} ({editedSeverity} severity). Citizens have final authority to modify any field before submission.
                     </div>
                   </div>
@@ -889,7 +900,7 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
                 <button
                   type="button"
                   onClick={() => setCurrentStep('location')}
-                  className="w-full sm:flex-1 py-3 bg-[#0B2545] hover:bg-[#07192f] dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                  className="w-full sm:flex-1 py-3 bg-[#0B2545] hover:bg-[#07192f] dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold text-xs rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
                 >
                   <span>{t('report.continue', 'Confirm Location')}</span>
                   <ChevronRight size={15} />
@@ -1012,7 +1023,7 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
                 <button
                   type="button"
                   onClick={() => setCurrentStep('confirm')}
-                  className="w-full sm:flex-1 py-3 bg-[#0B2545] hover:bg-[#07192f] dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                  className="w-full sm:flex-1 py-3 bg-[#0B2545] hover:bg-[#07192f] dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold text-xs rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
                 >
                   <span>{t('report.review_complaint', 'Review & Submit')}</span>
                   <ChevronRight size={15} />
@@ -1110,10 +1121,20 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
                 <button
                   type="button"
                   onClick={handleSubmitComplaint}
-                  className="w-full sm:flex-1 py-3 bg-[#0B2545] hover:bg-[#07192f] dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                  disabled={isSubmitting}
+                  className="w-full sm:flex-1 py-3 bg-[#0B2545] hover:bg-[#07192f] dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs disabled:opacity-60"
                 >
-                  <Check size={16} />
-                  <span>{t('report.submit_complaint', 'Submit Complaint')}</span>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      <span>Submitting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check size={16} />
+                      <span>{t('report.submit_complaint', 'Submit Complaint')}</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>

@@ -7,7 +7,6 @@ import {
   FileText,
   MapPin,
   RotateCcw,
-  Sparkles,
   Search,
   ArrowRight,
   X,
@@ -74,21 +73,18 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
   });
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
-      {/* Hero Card with Interactive Micro-Animations */}
-      <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-3xl p-6 sm:p-8 border border-slate-200/90 dark:border-slate-700/80 shadow-sm relative overflow-hidden transition-colors">
-        {/* Subtle decorative Indian tricolor top glow */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#FF9933] via-slate-200 dark:via-slate-700 to-[#138808]" />
-
+    <div className="max-w-3xl mx-auto px-3 sm:px-4 pt-4 sm:pt-8 pb-28 sm:pb-8 space-y-5 sm:space-y-6">
+      {/* Hero Card */}
+      <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 sm:p-7 border border-slate-200 dark:border-slate-700 shadow-2xs relative overflow-hidden transition-colors">
         <div className="space-y-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 dark:bg-amber-950/40 rounded-full text-xs font-medium text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 shadow-2xs">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>{t('home.hero_badge', 'AI Civic Grid Active • Live Triage')}</span>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 dark:bg-slate-700 rounded-full text-xs font-medium text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span>{t('home.hero_badge', 'Live Civic Grid Active')}</span>
             </div>
 
             {isLoggedIn && citizen && (
-              <div className="text-[11px] text-slate-600 dark:text-slate-300 bg-slate-100/80 dark:bg-slate-700/80 border border-slate-200/80 dark:border-slate-600 px-3 py-1 rounded-full font-medium flex items-center gap-1.5 shadow-2xs">
+              <div className="text-[11px] text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-3 py-1 rounded-full font-medium flex items-center gap-1.5">
                 <ShieldCheck size={13} className="text-emerald-600 dark:text-emerald-400" />
                 <span>{t('auth.verified_citizen', 'Verified Citizen')}:</span>
                 <span className="font-semibold text-slate-900 dark:text-white">{citizen.name}</span>
@@ -97,7 +93,7 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
           </div>
 
           <div className="space-y-2">
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight">
               {t('home.hero_title')} <br />
               <span className="text-slate-500 dark:text-slate-400 font-normal">{t('home.hero_subtitle')}</span>
             </h1>
@@ -111,11 +107,11 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
           <div className="pt-1 flex flex-col sm:flex-row sm:items-center gap-3">
             <button
               onClick={onStartReport}
-              className="w-full sm:w-auto px-6 py-3.5 sm:py-3 bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm rounded-2xl transition-all inline-flex items-center justify-center gap-2.5 cursor-pointer shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 min-h-[46px]"
+              className="w-full sm:w-auto px-6 py-3 bg-[#0B2545] hover:bg-[#07192f] dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm rounded-xl transition-colors inline-flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-98 min-h-[44px]"
             >
-              <Camera size={18} />
+              <Camera size={16} />
               <span>{t('home.cta_button')}</span>
-              <ChevronRight size={16} className="text-slate-400 dark:text-blue-200 ml-0.5" />
+              <ChevronRight size={15} className="text-slate-300 dark:text-blue-200 ml-0.5" />
             </button>
             {!isLoggedIn && (
               <span className="text-xs text-slate-500 dark:text-slate-400 font-medium text-center sm:text-left">
@@ -124,11 +120,10 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
             )}
           </div>
 
-          {/* Interactive 1-Click Category Launch Bar */}
-          <div className="pt-4 border-t border-slate-100 dark:border-slate-700/60 space-y-2">
+          {/* 1-Click Category Launch Bar */}
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-700 space-y-2">
             <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <Sparkles size={12} className="text-amber-500" />
-              <span>{t('home.quick_categories', 'Quick Report by Category')}</span>
+              <span>{t('home.quick_categories', 'Report by Category')}</span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {[
@@ -141,14 +136,14 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
                   key={cat.type}
                   type="button"
                   onClick={onStartReport}
-                  className="p-2.5 min-h-[48px] rounded-xl bg-slate-50 dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-750 border border-slate-200/70 dark:border-slate-700 text-left transition-all hover:-translate-y-0.5 hover:shadow-xs cursor-pointer flex items-center gap-2 select-none group"
+                  className="p-2.5 min-h-[46px] rounded-xl bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 text-left transition-colors cursor-pointer flex items-center gap-2 select-none group"
                 >
-                  <span className="text-lg group-hover:scale-110 transition-transform">{cat.icon}</span>
+                  <span className="text-base">{cat.icon}</span>
                   <div className="min-w-0">
                     <div className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400">
                       {t(cat.labelKey, cat.defaultLabel)}
                     </div>
-                    <div className="text-[10px] text-slate-400 truncate">AI Instant Triage</div>
+                    <div className="text-[10px] text-slate-400 truncate">Civic Issue</div>
                   </div>
                 </button>
               ))}
@@ -158,7 +153,7 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
       </div>
 
       {/* Direct Civic Grievance Tracker Card */}
-      <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-2xl p-5 border border-slate-200/90 dark:border-slate-700/80 shadow-xs space-y-3 transition-colors">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-2xs space-y-3 transition-colors">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
             <Search size={16} />
@@ -191,9 +186,9 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
         </form>
       </div>
 
-      {/* Your Civic Impact Section (Authenticated Civic Intelligence) */}
+      {/* Your Civic Impact Section */}
       {isLoggedIn && impact && (
-        <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-2xl p-5 border border-slate-200/90 dark:border-slate-700/80 shadow-xs space-y-3 font-sans transition-colors">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-2xs space-y-3 font-sans transition-colors">
           <div className="flex items-center justify-between">
             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
               {t('home.your_civic_impact')}
@@ -204,7 +199,7 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-            <div className="bg-slate-50/90 dark:bg-slate-900/60 p-3.5 rounded-xl border border-slate-200/70 dark:border-slate-700/70 transition-transform hover:-translate-y-0.5">
+            <div className="bg-slate-50 dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700">
               <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-1">
                 <span className="text-[10.5px] font-medium uppercase tracking-wider">{t('home.submitted')}</span>
                 <FileText size={14} className="text-slate-600 dark:text-slate-400" />
@@ -215,7 +210,7 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
               <span className="text-[10px] text-slate-500 dark:text-slate-400">{t('home.reports_filed')}</span>
             </div>
 
-            <div className="bg-emerald-50/80 dark:bg-emerald-950/40 p-3.5 rounded-xl border border-emerald-100 dark:border-emerald-800/60 transition-transform hover:-translate-y-0.5">
+            <div className="bg-slate-50 dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700">
               <div className="flex items-center justify-between text-emerald-700 dark:text-emerald-400 mb-1">
                 <span className="text-[10.5px] font-medium uppercase tracking-wider">{t('status.resolved')}</span>
                 <CheckCircle2 size={14} className="text-emerald-600 dark:text-emerald-400" />
@@ -226,7 +221,7 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
               <span className="text-[10px] text-emerald-700 dark:text-emerald-400">{t('home.fixed_issues')}</span>
             </div>
 
-            <div className="bg-blue-50/80 dark:bg-blue-950/40 p-3.5 rounded-xl border border-blue-100 dark:border-blue-800/60 transition-transform hover:-translate-y-0.5">
+            <div className="bg-slate-50 dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700">
               <div className="flex items-center justify-between text-blue-700 dark:text-blue-400 mb-1">
                 <span className="text-[10.5px] font-medium uppercase tracking-wider">{t('status.in_progress')}</span>
                 <Clock size={14} className="text-blue-600 dark:text-blue-400" />
@@ -237,7 +232,7 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
               <span className="text-[10px] text-blue-700 dark:text-blue-400">{t('home.active_municipal_work')}</span>
             </div>
 
-            <div className="bg-amber-50/80 dark:bg-amber-950/40 p-3.5 rounded-xl border border-amber-100 dark:border-amber-800/60 transition-transform hover:-translate-y-0.5">
+            <div className="bg-slate-50 dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700">
               <div className="flex items-center justify-between text-amber-700 dark:text-amber-400 mb-1">
                 <span className="text-[10.5px] font-medium uppercase tracking-wider">{t('myreports.status_reopened')}</span>
                 <RotateCcw size={14} className="text-amber-600 dark:text-amber-400" />
@@ -251,24 +246,24 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
         </div>
       )}
 
-      {/* 3 Step Indicator - Interactive Process Cards */}
+      {/* 3 Step Process Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
-        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs hover:-translate-y-0.5 transition-all">
-          <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono font-bold text-xs mx-auto mb-2 flex items-center justify-center">
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs">
+          <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-mono font-bold text-xs mx-auto mb-2 flex items-center justify-center">
             01
           </div>
           <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-0.5">{t('home.step1_title')}</div>
           <div className="text-[11px] text-slate-500 dark:text-slate-400">{t('home.step1_desc')}</div>
         </div>
-        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs hover:-translate-y-0.5 transition-all">
-          <div className="w-7 h-7 rounded-lg bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 font-mono font-bold text-xs mx-auto mb-2 flex items-center justify-center">
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs">
+          <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-mono font-bold text-xs mx-auto mb-2 flex items-center justify-center">
             02
           </div>
           <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-0.5">{t('home.step2_title')}</div>
           <div className="text-[11px] text-slate-500 dark:text-slate-400">{t('home.step2_desc')}</div>
         </div>
-        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs hover:-translate-y-0.5 transition-all">
-          <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 font-mono font-bold text-xs mx-auto mb-2 flex items-center justify-center">
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs">
+          <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-mono font-bold text-xs mx-auto mb-2 flex items-center justify-center">
             03
           </div>
           <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-0.5">{t('home.step3_title')}</div>
@@ -325,11 +320,11 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
         </div>
 
         {loading ? (
-          <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md rounded-2xl p-6 text-center text-xs text-slate-500 dark:text-slate-400 border border-slate-200/80 dark:border-slate-700/80">
+          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 text-center text-xs text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
             {t('home.loading')}
           </div>
         ) : filteredReports.length === 0 ? (
-          <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md rounded-2xl p-6 text-center text-xs text-slate-500 dark:text-slate-400 border border-slate-200/80 dark:border-slate-700/80">
+          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 text-center text-xs text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
             {isLoggedIn
               ? t('home.no_reports', 'No reports filed yet. Start by reporting an issue.')
               : 'Sign in to see your recently submitted civic reports.'}
@@ -349,13 +344,13 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
                       setPreviewComplaint(c);
                     }
                   }}
-                  className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-2xl p-3.5 border border-slate-200/80 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 transition-all hover:-translate-y-0.5 shadow-2xs hover:shadow-sm flex items-center gap-3.5 cursor-pointer group"
+                  className="bg-white dark:bg-slate-800 rounded-xl p-3.5 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-colors shadow-2xs flex items-center gap-3.5 cursor-pointer group"
                 >
-                  <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-700 shrink-0 border border-slate-200/70 dark:border-slate-600/70 relative">
+                  <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 shrink-0 border border-slate-200 dark:border-slate-600 relative">
                     <img
                       src={displayImage}
                       alt={c.problem_type}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      className="w-full h-full object-cover"
                       onError={(e) => {
                         (e.target as HTMLElement).style.display = 'none';
                       }}
@@ -364,7 +359,7 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <span className="font-bold text-xs text-slate-900 dark:text-slate-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                      <span className="font-semibold text-xs text-slate-900 dark:text-slate-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                         {getProblemLabel(c.problem_type, t)}
                       </span>
                       <SeverityBadge severity={c.severity} size="sm" />
@@ -380,7 +375,7 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
 
                   <div className="shrink-0 flex items-center gap-2">
                     <StatusBadge status={c.status} />
-                    <ChevronRight size={14} className="text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                    <ChevronRight size={14} className="text-slate-400" />
                   </div>
                 </div>
               );
@@ -389,10 +384,10 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
         )}
       </div>
 
-      {/* Interactive Quick Preview Modal */}
+      {/* Quick Preview Modal */}
       {previewComplaint && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-850 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-700 p-4 sm:p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 sm:p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-lg space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-750">
               <div className="space-y-0.5">
                 <div className="text-xs font-mono font-semibold text-slate-400">
