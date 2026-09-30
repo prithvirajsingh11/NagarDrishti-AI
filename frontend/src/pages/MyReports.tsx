@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   AlertTriangle,
+  ArrowLeft,
   Check,
   CheckCircle2,
   ChevronRight,
@@ -53,6 +54,7 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>('ALL');
   const [activeComplaint, setActiveComplaint] = useState<Complaint | null>(null);
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
 
   // Phase 6 Authentic Status History
   const [historyItems, setHistoryItems] = useState<ComplaintStatusHistoryItem[]>([]);
@@ -85,7 +87,10 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
         setComplaints(data);
         if (selectedComplaintId) {
           const match = data.find((c) => c.id === selectedComplaintId || c.report_id === selectedComplaintId);
-          if (match) setActiveComplaint(match);
+          if (match) {
+            setActiveComplaint(match);
+            setMobileDetailOpen(true);
+          }
         } else if (data.length > 0) {
           setActiveComplaint(data[0]);
         } else {
@@ -450,7 +455,7 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
       </div>
 
       {/* Search & Status Filter Section */}
-      <div className="space-y-3 font-sans">
+      <div className={`space-y-3 font-sans ${mobileDetailOpen ? 'hidden lg:block' : 'block'}`}>
         <div className="relative">
           <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
           <input
@@ -458,12 +463,12 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t('myreports.search_placeholder')}
-            className="w-full pl-9 pr-3.5 py-2 bg-white/80 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700/80 rounded-lg text-xs text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-hidden focus:border-slate-400 dark:focus:border-slate-500 shadow-2xs"
+            className="w-full pl-9 pr-3.5 py-2.5 sm:py-2 bg-white/80 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700/80 rounded-lg text-xs sm:text-xs text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-hidden focus:border-slate-400 dark:focus:border-slate-500 shadow-2xs"
           />
         </div>
 
-        {/* Status Filter Tabs */}
-        <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100/90 dark:bg-slate-800/90 rounded-xl border border-slate-200/70 dark:border-slate-700/70 text-xs">
+        {/* Status Filter Tabs - Horizontally scrollable on mobile */}
+        <div className="flex overflow-x-auto no-scrollbar items-center gap-1.5 p-1 bg-slate-100/90 dark:bg-slate-800/90 rounded-xl border border-slate-200/70 dark:border-slate-700/70 text-xs">
           {(
             [
               { key: 'ALL', label: t('myreports.status_all') },
@@ -480,7 +485,7 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                 key={tab.key}
                 type="button"
                 onClick={() => setStatusFilter(tab.key)}
-                className={`px-3 py-1.5 rounded-lg font-medium text-xs transition-all flex items-center gap-1.5 cursor-pointer select-none ${
+                className={`px-3 py-1.5 sm:py-1.5 min-h-[36px] rounded-lg font-medium text-xs transition-all flex items-center gap-1.5 cursor-pointer select-none whitespace-nowrap shrink-0 ${
                   active
                     ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-semibold'
                     : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50'
@@ -530,8 +535,8 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* List of Reports */}
-          <div className="lg:col-span-5 space-y-2.5">
+          {/* List of Reports: visible always on desktop, hidden on mobile when detail is open */}
+          <div className={`space-y-2.5 lg:col-span-5 ${mobileDetailOpen ? 'hidden lg:block' : 'block'}`}>
             {filteredComplaints.map((c) => {
               const isSelected = activeComplaint?.id === c.id || activeComplaint?.report_id === c.report_id;
               return (
@@ -539,22 +544,16 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                   key={c.id || c.report_id}
                   onClick={() => {
                     setActiveComplaint(c);
-                    // On mobile, scroll down slightly to view details
-                    if (window.innerWidth < 1024) {
-                      setTimeout(() => {
-                        const el = document.getElementById('report-detail-view');
-                        if (el) el.scrollIntoView({ behavior: 'smooth' });
-                      }, 50);
-                    }
+                    setMobileDetailOpen(true);
                   }}
-                  className={`bg-white dark:bg-slate-800/90 rounded-xl p-3.5 border transition-all cursor-pointer ${
+                  className={`bg-white dark:bg-slate-800/90 rounded-xl p-3.5 sm:p-4 border transition-all cursor-pointer ${
                     isSelected
                       ? 'border-slate-900 dark:border-blue-500 ring-2 ring-slate-900/10 dark:ring-blue-500/20 shadow-sm'
                       : 'border-slate-200/90 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 shadow-xs'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="font-mono text-xs font-semibold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded">
                         {c.report_id}
                       </span>
@@ -563,13 +562,13 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                     <StatusBadge status={c.status} />
                   </div>
 
-                  <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-slate-100 mb-1">
-                    <ProblemIcon type={c.problem_type} size={15} />
-                    <span>{getProblemLabel(c.problem_type, t)}</span>
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-slate-100 mb-1.5">
+                    <ProblemIcon type={c.problem_type} size={16} />
+                    <span className="capitalize">{getProblemLabel(c.problem_type, t)}</span>
                   </div>
 
-                  <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 truncate mb-2">
-                    <MapPin size={11} className="shrink-0 text-slate-400" />
+                  <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 truncate mb-2.5">
+                    <MapPin size={12} className="shrink-0 text-slate-400" />
                     <span className="truncate">{c.location_name}</span>
                   </div>
 
@@ -580,10 +579,15 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                     </span>
                     <button
                       type="button"
-                      className="inline-flex items-center gap-1 font-semibold text-slate-800 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white text-[11px]"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveComplaint(c);
+                        setMobileDetailOpen(true);
+                      }}
+                      className="inline-flex items-center gap-1 font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-[11.5px] p-1 -m-1"
                     >
                       <span>{t('myreports.view_details')}</span>
-                      <ChevronRight size={12} />
+                      <ChevronRight size={13} />
                     </button>
                   </div>
                 </div>
@@ -595,10 +599,25 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
           {activeComplaint && (
             <div
               id="report-detail-view"
-              className="lg:col-span-7 bg-white dark:bg-slate-800/95 rounded-xl border border-slate-200/90 dark:border-slate-700/90 p-5 space-y-5 shadow-xs sticky top-20"
+              className={`lg:col-span-7 bg-white dark:bg-slate-800/95 rounded-xl border border-slate-200/90 dark:border-slate-700/90 p-4 sm:p-5 space-y-5 shadow-xs sticky top-20 ${
+                mobileDetailOpen ? 'block' : 'hidden lg:block'
+              }`}
             >
-              {/* Header */}
-              <div className="flex items-start justify-between border-b border-slate-100 dark:border-slate-700/80 pb-3">
+              {/* Mobile Back to Reports Header */}
+              <div className="lg:hidden flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setMobileDetailOpen(false)}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/80 dark:hover:bg-slate-600 px-3 py-2 rounded-lg transition-colors cursor-pointer min-h-[38px] active:scale-95"
+                >
+                  <ArrowLeft size={15} />
+                  <span>{t('common.back', 'Back to Reports')}</span>
+                </button>
+                <StatusBadge status={activeComplaint.status} />
+              </div>
+
+              {/* Desktop Header */}
+              <div className="hidden lg:flex items-start justify-between border-b border-slate-100 dark:border-slate-700/80 pb-3">
                 <div>
                   <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                     {t('myreports.dossier')}
@@ -628,6 +647,35 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                   </button>
                   <StatusBadge status={activeComplaint.status} />
                 </div>
+              </div>
+
+              {/* Mobile Report ID & Action Bar */}
+              <div className="lg:hidden flex items-center justify-between">
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                    {t('myreports.dossier')}
+                  </div>
+                  <div className="text-sm font-bold font-mono text-slate-900 dark:text-white">
+                    {activeComplaint.report_id}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleShareStatus}
+                  className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-xs font-medium rounded-lg transition-colors cursor-pointer flex items-center gap-1 shadow-2xs min-h-[36px]"
+                >
+                  {copiedShare ? (
+                    <>
+                      <Check size={12} className="text-emerald-600 dark:text-emerald-400" />
+                      <span className="text-emerald-700 dark:text-emerald-400 font-semibold text-[11px]">{t('myreports.link_copied')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Share2 size={12} />
+                      <span className="text-[11px]">{t('myreports.share_status')}</span>
+                    </>
+                  )}
+                </button>
               </div>
 
               {/* Action feedback alert banner */}
@@ -1124,41 +1172,38 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
               {activeComplaint.status === 'RESOLVED' &&
                 !activeComplaint.citizen_resolution_confirmed &&
                 !activeComplaint.citizen_reopened && (
-                  <div className="bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 rounded-xl p-4 space-y-3 font-sans">
+                  <div className="bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 rounded-xl p-4 sm:p-5 space-y-3 font-sans">
                     <div className="flex items-start gap-2.5">
                       <AlertTriangle size={18} className="text-amber-700 dark:text-amber-400 shrink-0 mt-0.5" />
-                      <div className="space-y-0.5">
-                        <h4 className="text-xs font-bold text-amber-950 dark:text-amber-200">
-                          Authority marked this issue as resolved. Please verify whether the issue has actually been fixed.
+                      <div className="space-y-1">
+                        <h4 className="text-xs sm:text-sm font-bold text-amber-950 dark:text-amber-200">
+                          Is this issue actually resolved?
                         </h4>
-                        <p className="text-[11px] text-amber-900 dark:text-amber-300 leading-snug">
+                        <p className="text-[11.5px] text-amber-900/90 dark:text-amber-300/90 leading-snug">
                           Your verification directly impacts civic accountability. Confirm if field repairs are satisfactory or request reopening if the problem persists.
                         </p>
-                        <span className="text-[10px] text-amber-800/90 dark:text-amber-400/90 block pt-0.5">
-                          Resolution is marked complete after authority action and may be reopened if the issue persists.
-                        </span>
                       </div>
                     </div>
 
                     {!showReopenForm ? (
-                      <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
                         <button
                           type="button"
                           onClick={handleConfirmResolution}
                           disabled={confirming}
-                          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs disabled:opacity-50"
+                          className="w-full min-h-[44px] px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-xs disabled:opacity-50"
                         >
-                          <Check size={14} />
-                          {confirming ? 'Confirming...' : t('myreports.confirm_resolution')}
+                          <Check size={16} strokeWidth={2.5} />
+                          <span>{confirming ? 'Confirming...' : t('myreports.confirm_resolution', 'Confirm Resolution')}</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => setShowReopenForm(true)}
                           disabled={confirming}
-                          className="px-4 py-2 bg-white dark:bg-slate-800 hover:bg-amber-100 dark:hover:bg-slate-700 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700 font-medium text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
+                          className="w-full min-h-[44px] px-4 py-2.5 bg-white dark:bg-slate-800 hover:bg-amber-100/70 dark:hover:bg-slate-700 text-amber-950 dark:text-amber-200 border border-amber-300 dark:border-amber-700 font-semibold text-xs rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2"
                         >
-                          <RotateCcw size={14} />
-                          {t('myreports.issue_still_exists')}
+                          <RotateCcw size={15} />
+                          <span>{t('myreports.issue_still_exists', 'Reopen Complaint')}</span>
                         </button>
                       </div>
                     ) : (

@@ -404,21 +404,24 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
           {currentStep === 'capture' && (
             <div className="space-y-3.5">
               {/* Card 1: Upload or Snap Photo */}
-              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 text-center shadow-xs flex flex-col items-center justify-center transition-colors">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 sm:p-8 text-center shadow-xs flex flex-col items-center justify-center transition-colors">
                 {previewUrl ? (
                   <div className="w-full space-y-4">
-                    <div className="max-h-72 w-full rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 relative shadow-inner border border-slate-200 dark:border-slate-700 flex items-center justify-center">
+                    {/* Large but properly constrained preview */}
+                    <div className="h-56 sm:h-72 w-full rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 relative shadow-inner border border-slate-200 dark:border-slate-700 flex items-center justify-center">
                       <img
                         src={previewUrl}
                         alt="Civic Issue Preview"
-                        className="max-h-72 w-auto object-contain mx-auto"
+                        className="h-full w-auto max-w-full object-contain mx-auto"
                       />
                     </div>
-                    <div className="flex items-center justify-center gap-2.5">
+
+                    {/* Immediate Post-Capture Actions: Retake and Use Photo & Analyze */}
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 w-full pt-1">
                       <button
                         type="button"
                         onClick={() => cameraInputRef.current?.click()}
-                        className="px-4 py-2 bg-[#0B2545] hover:bg-[#07192f] dark:bg-blue-600 dark:hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-colors flex items-center gap-2 cursor-pointer shadow-xs"
+                        className="w-full sm:w-auto py-2.5 px-4 bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
                       >
                         <Camera size={14} />
                         <span>{t('report.retake', 'Retake Photo')}</span>
@@ -426,44 +429,63 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
                       <button
                         type="button"
                         onClick={() => galleryInputRef.current?.click()}
-                        className="px-4 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl transition-colors flex items-center gap-2 cursor-pointer"
+                        className="w-full sm:w-auto py-2.5 px-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
                       >
                         <ImageIcon size={14} />
                         <span>{t('report.change_gallery', 'Change Photo')}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleStartAnalysis}
+                        disabled={isAnalyzing}
+                        className="w-full sm:flex-1 py-3 px-5 bg-[#0B2545] hover:bg-[#07192f] dark:bg-blue-600 dark:hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold rounded-xl flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
+                      >
+                        {isAnalyzing ? (
+                          <>
+                            <Loader2 size={16} className="animate-spin" />
+                            <span>{t('report.processing', 'Processing Image...')}</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles size={16} className="text-amber-300" />
+                            <span>Use Photo & Run AI Analysis</span>
+                            <ArrowRight size={16} />
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
                 ) : (
                   <>
                     {/* Center Camera Circular Badge */}
-                    <div className="w-14 h-14 rounded-full bg-[#F0F5FF] dark:bg-blue-950/60 text-[#1D4ED8] dark:text-blue-400 flex items-center justify-center mb-3.5 shadow-2xs">
-                      <Camera size={26} strokeWidth={2} />
+                    <div className="w-16 h-16 rounded-full bg-[#F0F5FF] dark:bg-blue-950/60 text-[#1D4ED8] dark:text-blue-400 flex items-center justify-center mb-3.5 shadow-2xs">
+                      <Camera size={30} strokeWidth={2.2} />
                     </div>
 
-                    <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
                       {t('report.upload_title', 'Upload or Snap Photo')}
                     </h2>
-                    <p className="text-xs text-slate-400 dark:text-slate-400 mt-1 max-w-sm mx-auto">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto leading-relaxed">
                       {t('report.upload_desc', 'Clear photos help us understand the issue better. (JPG, PNG, WEBP – Max 10MB)')}
                     </p>
 
-                    {/* Action Buttons: Take Photo & Choose from Gallery */}
-                    <div className="flex flex-wrap items-center justify-center gap-3 mt-5">
+                    {/* Action Buttons: Take Photo (Primary on Mobile) & Choose from Gallery (Secondary) */}
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2.5 mt-5 w-full max-w-sm">
                       <button
                         type="button"
                         onClick={() => cameraInputRef.current?.click()}
-                        className="px-5 py-2.5 bg-[#0B2545] hover:bg-[#07192f] dark:bg-blue-600 dark:hover:bg-blue-700 text-white text-xs font-medium rounded-xl flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
+                        className="w-full py-3 px-6 bg-[#0B2545] hover:bg-[#07192f] dark:bg-blue-600 dark:hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold rounded-xl flex items-center justify-center gap-2.5 shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-98"
                       >
-                        <Camera size={14} />
+                        <Camera size={16} strokeWidth={2.2} />
                         <span>{t('report.take_photo', 'Take Photo')}</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => galleryInputRef.current?.click()}
-                        className="px-5 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium rounded-xl flex items-center gap-2 transition-colors cursor-pointer shadow-2xs"
+                        className="w-full py-3 px-6 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-medium rounded-xl flex items-center justify-center gap-2.5 transition-colors cursor-pointer shadow-2xs active:scale-98"
                       >
-                        <ImageIcon size={14} />
+                        <ImageIcon size={16} />
                         <span>{t('report.choose_gallery', 'Choose from Gallery')}</span>
                       </button>
                     </div>
@@ -501,18 +523,18 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
               <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-4 shadow-xs transition-colors">
                 <div className="flex items-center justify-between gap-3">
                   <div
-                    className="flex items-center gap-3 cursor-pointer select-none"
+                    className="flex items-center gap-3 cursor-pointer select-none min-w-0"
                     onClick={handleAutoDetectLocation}
                     title="Click to auto-detect location"
                   >
                     <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-950/60 text-[#1D4ED8] dark:text-blue-400 flex items-center justify-center shrink-0">
                       <MapPin size={18} />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <div className="text-xs font-bold text-slate-900 dark:text-white tracking-tight">
                         {t('report.location_title', 'Location')}
                       </div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-xs sm:max-w-md">
+                      <div className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[180px] sm:max-w-md">
                         {locationName || t('report.location_autodetect', 'Auto-detect or select on map')}
                       </div>
                     </div>
@@ -554,9 +576,8 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
                   </span>
                 </div>
 
-                {/* 6 Category Chips matching the screenshot */}
+                {/* Category Chips matching layout */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
-                  {/* 1. Pothole */}
                   <button
                     type="button"
                     onClick={() => setEditedProblemType('pothole')}
@@ -570,7 +591,6 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
                     <span className="truncate">{t('problems.pothole', 'Pothole')}</span>
                   </button>
 
-                  {/* 2. Garbage Dump */}
                   <button
                     type="button"
                     onClick={() => setEditedProblemType('garbage')}
@@ -584,7 +604,6 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
                     <span className="truncate">{t('problems.garbage', 'Garbage Dump')}</span>
                   </button>
 
-                  {/* 3. Broken Streetlight */}
                   <button
                     type="button"
                     onClick={() => setEditedProblemType('streetlight')}
@@ -598,7 +617,6 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
                     <span className="truncate">{t('problems.streetlight', 'Broken Streetlight')}</span>
                   </button>
 
-                  {/* 4. Blocked Drain */}
                   <button
                     type="button"
                     onClick={() => setEditedProblemType('drain')}
@@ -612,7 +630,6 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
                     <span className="truncate">{t('problems.drain', 'Blocked Drain')}</span>
                   </button>
 
-                  {/* 5. Damaged Road */}
                   <button
                     type="button"
                     onClick={() => setEditedProblemType('pothole')}
@@ -626,7 +643,6 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
                     <span className="truncate">{t('problems.damaged_road', 'Damaged Road')}</span>
                   </button>
 
-                  {/* 6. Other */}
                   <button
                     type="button"
                     onClick={() => setEditedProblemType('other')}
@@ -642,12 +658,12 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
                 </div>
               </div>
 
-              {/* Bottom Full-Width CTA: Analyze with AI -> */}
+              {/* Bottom Full-Width CTA: Analyze with AI */}
               <button
                 type="button"
                 onClick={handleStartAnalysis}
                 disabled={isAnalyzing}
-                className="w-full py-3.5 px-6 bg-[#0B2545] hover:bg-[#07192f] dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-medium text-xs sm:text-sm rounded-xl flex items-center justify-center gap-2.5 shadow-xs transition-colors cursor-pointer mt-4"
+                className="w-full py-3.5 px-6 bg-[#0B2545] hover:bg-[#07192f] dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm rounded-2xl flex items-center justify-center gap-2.5 shadow-md hover:shadow-lg transition-all cursor-pointer mt-2"
               >
                 {isAnalyzing ? (
                   <>
@@ -667,37 +683,37 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
 
           {/* ================= STEP 2: ANALYZING ================= */}
           {currentStep === 'analyzing' && (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 border border-slate-200/90 dark:border-slate-800 text-center space-y-6 shadow-xs transition-colors">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200/90 dark:border-slate-800 text-center space-y-5 shadow-xs transition-colors">
               <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-[#1D4ED8] dark:text-blue-400 flex items-center justify-center mx-auto shadow-xs">
                 <Sparkles size={28} />
               </div>
 
               <div className="space-y-1">
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  {t('report.analyzing_title', 'Analyzing your image...')}
+                <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+                  Analyzing civic issue...
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  {t('report.analyzing_desc', 'AI multimodal vision is examining visual evidence')}
+                  AI vision model is inspecting the uploaded evidence
                 </p>
               </div>
 
-              <div className="max-w-xs mx-auto space-y-2.5 text-xs text-left">
+              <div className="max-w-xs mx-auto space-y-2.5 text-xs text-left bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700/80">
                 <div className="flex items-center gap-2.5 text-slate-700 dark:text-slate-300 font-medium">
                   <div className="w-4 h-4 rounded-full bg-[#0B2545] dark:bg-blue-600 text-white flex items-center justify-center text-[10px]">
                     ✓
                   </div>
-                  <span>{t('report.analyzing_step1', 'Identifying civic issue')}</span>
+                  <span>Scanning image features</span>
                 </div>
                 <div className="flex items-center gap-2.5 text-slate-700 dark:text-slate-300 font-medium">
                   <div className="w-4 h-4 rounded-full bg-[#0B2545] dark:bg-blue-600 text-white flex items-center justify-center text-[10px]">
                     ✓
                   </div>
-                  <span>{t('report.analyzing_step2', 'Checking visual severity')}</span>
+                  <span>Estimating defect severity</span>
                 </div>
                 <div className="flex items-center gap-2.5 text-slate-700 dark:text-slate-300 font-medium">
-                  <Loader2 size={14} className="animate-spin text-blue-600 dark:text-blue-400 shrink-0" />
+                  <Loader2 size={13} className="animate-spin text-blue-600 dark:text-blue-400 shrink-0" />
                   <span className="text-slate-900 dark:text-white font-semibold">
-                    {t('report.analyzing_step3', 'Preparing triage summary')}
+                    Routing to municipal department...
                   </span>
                 </div>
               </div>
@@ -707,113 +723,176 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
           {/* ================= STEP 3: REVIEW AI RESULT ================= */}
           {currentStep === 'review_ai' && aiResult && (
             <div className="space-y-4">
-              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs transition-colors">
-                {/* AI Header */}
+              {/* Low Confidence Warning Guard */}
+              {aiResult.confidence < 0.5 && (
+                <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 rounded-2xl p-4 sm:p-5 text-center space-y-3 shadow-xs">
+                  <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 flex items-center justify-center mx-auto">
+                    <AlertTriangle size={20} />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-xs sm:text-sm font-bold text-amber-900 dark:text-amber-200">
+                      Low AI Detection Confidence
+                    </h4>
+                    <p className="text-xs text-amber-800 dark:text-amber-300 max-w-sm mx-auto">
+                      We couldn't clearly identify the civic issue. Please capture a clearer photo.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedFile(null);
+                        setPreviewUrl(null);
+                        setAiResult(null);
+                        setCurrentStep('capture');
+                      }}
+                      className="px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white font-semibold text-xs rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs"
+                    >
+                      <Camera size={14} />
+                      <span>Retake Photo</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCurrentStep('edit_ai')}
+                      className="px-4 py-2 bg-white dark:bg-slate-800 hover:bg-amber-100 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700 font-medium text-xs rounded-xl transition-colors cursor-pointer"
+                    >
+                      Edit Manually
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Main AI Result Presentation Card */}
+              <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs transition-colors">
+                {/* AI Card Header */}
                 <div className="bg-[#0B2545] dark:bg-slate-800 text-white p-4 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Sparkles size={15} className="text-amber-400" />
-                    <span className="font-semibold text-xs tracking-tight">
-                      {t('report.ai_triage', 'AI Detection Triage')}
+                    <Sparkles size={16} className="text-amber-400" />
+                    <span className="font-bold text-xs tracking-tight uppercase">
+                      AI Detection Result
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     {aiResult.is_fallback && (
-                      <span className="text-[10px] font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded">
+                      <span className="text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-md">
                         DEMO FALLBACK
                       </span>
                     )}
-                    <span className="text-[11px] font-mono bg-white/10 px-2.5 py-0.5 rounded text-white font-medium">
-                      {Math.round(aiResult.confidence * 100)}% {t('report.confidence', 'confidence')}
+                    <span className="text-[11px] font-mono bg-white/15 px-2.5 py-0.5 rounded-md text-white font-semibold">
+                      {Math.round(aiResult.confidence * 100)}% Confidence
                     </span>
                   </div>
                 </div>
 
-                <div className="p-5 space-y-4 text-xs">
-                  {/* Detected Problem */}
-                  <div className="flex items-start justify-between pb-3.5 border-b border-slate-100 dark:border-slate-800">
-                    <div>
-                      <div className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
-                        {t('report.detected_problem', 'Detected Problem')}
+                <div className="p-4 sm:p-5 space-y-3.5 text-xs">
+                  {/* Field 1: Category */}
+                  <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/70">
+                    <div className="min-w-0">
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        Category
                       </div>
-                      <div className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2 mt-0.5">
+                      <div className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mt-0.5 truncate">
                         <ProblemIcon type={editedProblemType} size={16} />
-                        <span>{getProblemLabel(editedProblemType, t)}</span>
+                        <span className="truncate">{getProblemLabel(editedProblemType, t)}</span>
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => setCurrentStep('edit_ai')}
-                      className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-medium inline-flex items-center gap-1 cursor-pointer"
+                      className="px-2.5 py-1 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded-lg inline-flex items-center gap-1 cursor-pointer shrink-0"
                     >
                       <Edit2 size={12} />
-                      <span>{t('report.edit', 'Edit')}</span>
+                      <span>Edit</span>
                     </button>
                   </div>
 
-                  {/* Visual Severity */}
-                  <div className="flex items-start justify-between pb-3.5 border-b border-slate-100 dark:border-slate-800">
-                    <div>
-                      <div className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
-                        {t('report.visual_severity', 'Visual Severity')}
+                  {/* Field 2 & 3: Confidence & Severity in 2 columns */}
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {/* Confidence */}
+                    <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/70">
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        Confidence
                       </div>
-                      <div className="mt-1 flex items-center gap-2">
-                        <SeverityBadge severity={editedSeverity} showSubtitle />
+                      <div className="text-xs font-bold text-slate-900 dark:text-white mt-1">
+                        {aiResult.confidence >= 0.8
+                          ? 'High'
+                          : aiResult.confidence >= 0.5
+                          ? 'Moderate'
+                          : 'Low'}{' '}
+                        ({Math.round(aiResult.confidence * 100)}%)
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setCurrentStep('edit_ai')}
-                      className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-medium inline-flex items-center gap-1 cursor-pointer"
-                    >
-                      <Edit2 size={12} />
-                      <span>{t('report.edit', 'Edit')}</span>
-                    </button>
+
+                    {/* Severity */}
+                    <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/70 flex items-center justify-between">
+                      <div>
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          Severity
+                        </div>
+                        <div className="mt-1">
+                          <SeverityBadge severity={editedSeverity} size="sm" />
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setCurrentStep('edit_ai')}
+                        className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                      >
+                        Change
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Evidence flags */}
-                  <div className="pb-3.5 border-b border-slate-100 dark:border-slate-800">
-                    <div className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mb-1">
-                      {t('report.evidence', 'Evidence')}
+                  {/* Field 4: Department */}
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/70">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      Department Assigned
                     </div>
-                    {aiResult.evidence && aiResult.evidence.length > 0 ? (
-                      <ul className="space-y-1 list-disc list-inside text-slate-700 dark:text-slate-300">
+                    <div className="text-xs font-semibold text-slate-800 dark:text-slate-200 mt-0.5">
+                      {aiResult.suggested_department || 'Municipal Corporation'}
+                    </div>
+                  </div>
+
+                  {/* Evidence flags if present */}
+                  {aiResult.evidence && aiResult.evidence.length > 0 && (
+                    <div className="p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                        Visual Evidence Detected
+                      </div>
+                      <ul className="space-y-0.5 list-disc list-inside text-slate-600 dark:text-slate-300 text-[11.5px]">
                         {aiResult.evidence.map((ev, i) => (
                           <li key={i}>{ev}</li>
                         ))}
                       </ul>
-                    ) : (
-                      <span className="text-slate-400 italic">No specific evidence flags</span>
-                    )}
-                  </div>
-
-                  {/* Routing Department */}
-                  <div>
-                    <div className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
-                      {t('report.department', 'Suggested Department')}
                     </div>
-                    <div className="text-xs font-semibold text-slate-800 dark:text-slate-200 mt-0.5">
-                      {aiResult.suggested_department || 'Municipal Corporation'}
+                  )}
+
+                  {/* User Understanding Prompt */}
+                  <div className="p-3 rounded-2xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/60 flex items-start gap-2.5">
+                    <Sparkles size={15} className="text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                    <div className="text-[11px] text-blue-950 dark:text-blue-200 leading-snug">
+                      <span className="font-bold">What did the AI detect?</span> Category: {getProblemLabel(editedProblemType, t)} ({editedSeverity} severity). Citizens have final authority to modify any field before submission.
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
                 <button
                   type="button"
                   onClick={() => setCurrentStep('edit_ai')}
-                  className="flex-1 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-medium text-xs rounded-xl transition-colors cursor-pointer"
+                  className="w-full sm:flex-1 py-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-xs rounded-xl transition-colors cursor-pointer text-center"
                 >
                   {t('report.edit', 'Edit Detection')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setCurrentStep('location')}
-                  className="flex-1 py-2.5 bg-[#0B2545] hover:bg-[#07192f] dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-medium text-xs rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                  className="w-full sm:flex-1 py-3 bg-[#0B2545] hover:bg-[#07192f] dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
                 >
                   <span>{t('report.continue', 'Confirm Location')}</span>
-                  <ChevronRight size={14} />
+                  <ChevronRight size={15} />
                 </button>
               </div>
             </div>
@@ -922,21 +1001,21 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
                 />
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
                 <button
                   type="button"
                   onClick={() => setCurrentStep('review_ai')}
-                  className="flex-1 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-medium text-xs rounded-xl transition-colors cursor-pointer"
+                  className="w-full sm:flex-1 py-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-xs rounded-xl transition-colors cursor-pointer text-center"
                 >
                   {t('report.back', 'Back')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setCurrentStep('confirm')}
-                  className="flex-1 py-2.5 bg-[#0B2545] hover:bg-[#07192f] dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-medium text-xs rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                  className="w-full sm:flex-1 py-3 bg-[#0B2545] hover:bg-[#07192f] dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
                 >
                   <span>{t('report.review_complaint', 'Review & Submit')}</span>
-                  <ChevronRight size={14} />
+                  <ChevronRight size={15} />
                 </button>
               </div>
             </div>
@@ -945,13 +1024,13 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
           {/* ================= STEP 6: FINAL CONFIRMATION ================= */}
           {currentStep === 'confirm' && (
             <div className="space-y-4">
-              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-4 shadow-xs transition-colors">
-                <h3 className="text-xs font-semibold text-slate-900 dark:text-white pb-2 border-b border-slate-100 dark:border-slate-800">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-5 space-y-4 shadow-xs transition-colors">
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white pb-2 border-b border-slate-100 dark:border-slate-800 uppercase tracking-wider">
                   {t('report.review_complaint', 'Review Complaint Summary')}
                 </h3>
 
                 {previewUrl && (
-                  <div className="h-44 w-full rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                  <div className="h-48 sm:h-56 w-full rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center">
                     <img
                       src={previewUrl}
                       alt="Complaint Preview"
@@ -961,41 +1040,43 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
                 )}
 
                 <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div>
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block">
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-bold">
                       {t('report.detected_problem', 'Problem Type')}
                     </span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-200">
+                    <span className="font-bold text-slate-900 dark:text-slate-100 mt-0.5 block truncate">
                       {getProblemLabel(editedProblemType, t)}
                     </span>
                   </div>
-                  <div>
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block">
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-bold">
                       {t('report.visual_severity', 'Visual Severity')}
                     </span>
-                    <SeverityBadge severity={editedSeverity} size="sm" />
+                    <div className="mt-1">
+                      <SeverityBadge severity={editedSeverity} size="sm" />
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block">
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-bold">
                       {t('report.department', 'Department')}
                     </span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-200">
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 mt-0.5 block truncate">
                       {aiResult?.suggested_department || 'Municipal Corporation'}
                     </span>
                   </div>
-                  <div>
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block">
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-bold">
                       {t('report.location_title', 'Location')}
                     </span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-200 truncate block">
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 truncate block mt-0.5">
                       {locationName}
                     </span>
                   </div>
                 </div>
 
                 {description && (
-                  <div className="text-xs bg-slate-50 dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
-                    <span className="text-[10px] text-slate-400 block font-medium mb-0.5">
+                  <div className="text-xs bg-slate-50 dark:bg-slate-800/80 p-3 rounded-2xl border border-slate-200 dark:border-slate-700">
+                    <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider mb-0.5">
                       Citizen Notes:
                     </span>
                     <span className="text-slate-700 dark:text-slate-300">{description}</span>
@@ -1004,34 +1085,34 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
 
                 {/* Reporting Citizen Info */}
                 {citizen && (
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-xs space-y-1">
-                    <div className="flex items-center justify-between text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+                  <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs space-y-1">
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase tracking-wider">
                       <span>{t('auth.profile', 'Reporting Citizen')}</span>
                       <span className="text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded font-medium border border-emerald-200/60 dark:border-emerald-800/60 flex items-center gap-1">
                         <CheckCircle2 size={11} />
                         {t('auth.verified_citizen', 'Verified')}
                       </span>
                     </div>
-                    <div className="font-semibold text-slate-900 dark:text-white">{citizen.name}</div>
+                    <div className="font-bold text-slate-900 dark:text-white">{citizen.name}</div>
                     <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">{citizen.email}</div>
                   </div>
                 )}
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
                 <button
                   type="button"
                   onClick={() => setCurrentStep('location')}
-                  className="flex-1 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-medium text-xs rounded-xl transition-colors cursor-pointer"
+                  className="w-full sm:flex-1 py-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-xs rounded-xl transition-colors cursor-pointer text-center"
                 >
                   {t('report.back', 'Back')}
                 </button>
                 <button
                   type="button"
                   onClick={handleSubmitComplaint}
-                  className="flex-1 py-2.5 bg-[#0B2545] hover:bg-[#07192f] dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-medium text-xs rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                  className="w-full sm:flex-1 py-3 bg-[#0B2545] hover:bg-[#07192f] dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
                 >
-                  <Check size={14} />
+                  <Check size={16} />
                   <span>{t('report.submit_complaint', 'Submit Complaint')}</span>
                 </button>
               </div>
@@ -1040,14 +1121,14 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
 
           {/* ================= SUBMITTING STATE ================= */}
           {currentStep === 'submitting' && (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 border border-slate-200 dark:border-slate-800 text-center space-y-4 shadow-xs transition-colors">
-              <Loader2 size={32} className="animate-spin text-slate-800 dark:text-slate-200 mx-auto" />
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 text-center space-y-4 shadow-xs transition-colors">
+              <Loader2 size={36} className="animate-spin text-[#0B2545] dark:text-blue-400 mx-auto" />
               <div className="space-y-1">
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-                  {t('report.submitting_title', 'Submitting to Municipal Portal...')}
+                <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+                  Submitting complaint...
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  {t('report.submitting_desc', 'Generating official tracking ID and notifying ward authorities.')}
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                  Generating official tracking reference ID and dispatching notification to municipal zone authorities.
                 </p>
               </div>
             </div>

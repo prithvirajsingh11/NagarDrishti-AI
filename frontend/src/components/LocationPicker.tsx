@@ -33,6 +33,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
       const map = L.map(mapContainerRef.current, {
         zoomControl: true,
         attributionControl: true,
+        scrollWheelZoom: false, // Prevent page scroll interception on touch/scroll
       }).setView([latitude, longitude], DEFAULT_MAP_ZOOM);
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -43,9 +44,9 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
       // Custom pulse icon for location
       const pinIcon = L.divIcon({
         className: 'custom-pin-icon',
-        html: `<div style="background-color: #0284c7; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;"><div style="width: 8px; height: 8px; background: white; border-radius: 50%;"></div></div>`,
-        iconSize: [24, 24],
-        iconAnchor: [12, 12],
+        html: `<div style="background-color: #0284c7; width: 26px; height: 26px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center;"><div style="width: 8px; height: 8px; background: white; border-radius: 50%;"></div></div>`,
+        iconSize: [26, 26],
+        iconAnchor: [13, 13],
       });
 
       const marker = L.marker([latitude, longitude], {
@@ -129,52 +130,68 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
   const { t } = useLanguage();
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 font-sans select-none">
       <div className="flex items-center justify-between gap-2">
-        <label className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
-          <MapPin size={14} className="text-sky-600 dark:text-sky-400" />
-          {t('location.picker_title', 'Location & Coordinates')}
+        <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+          <MapPin size={14} className="text-[#0B2545] dark:text-blue-400" />
+          <span>{t('location.picker_title', 'Civic Location')}</span>
         </label>
         <button
           type="button"
           onClick={handleUseMyLocation}
           disabled={gpsLoading}
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/40 hover:bg-sky-100 dark:hover:bg-sky-900/50 border border-sky-200 dark:border-sky-800 px-2.5 py-1 rounded-md transition-colors disabled:opacity-60 cursor-pointer"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200/80 dark:border-blue-800/80 px-3 py-1.5 rounded-xl transition-colors disabled:opacity-60 cursor-pointer shadow-2xs"
         >
           <Crosshair size={13} className={gpsLoading ? 'animate-spin' : ''} />
-          {gpsLoading ? t('location.locating', 'Locating...') : t('location.use_my_location', 'Use My Location')}
+          <span>{gpsLoading ? t('location.locating', 'Locating...') : t('location.use_my_location', 'Use My GPS')}</span>
         </button>
       </div>
 
       {gpsError && (
-        <div className="p-2 text-xs bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 rounded-md">
+        <div className="p-2.5 text-xs bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 rounded-xl">
           {gpsError}
         </div>
       )}
 
-      {/* Mini Leaflet Map */}
-      <div className="h-48 w-full rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 relative shadow-inner">
+      {/* Prominent Selected Location Banner */}
+      <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 flex items-start gap-2.5 shadow-2xs">
+        <div className="w-8 h-8 rounded-xl bg-blue-100 dark:bg-blue-900/50 text-[#0B2545] dark:text-blue-400 flex items-center justify-center shrink-0 mt-0.5">
+          <MapPin size={16} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider block">
+            Selected Location
+          </span>
+          <span className="text-xs font-bold text-slate-900 dark:text-white block truncate">
+            {locationName || 'Pin selected on map'}
+          </span>
+          <span className="text-[10.5px] text-slate-500 dark:text-slate-400 font-mono block mt-0.5">
+            {latitude.toFixed(5)}, {longitude.toFixed(5)}
+          </span>
+        </div>
+      </div>
+
+      {/* Leaflet Map with Comfortable Mobile Height & Move Pin Guidance */}
+      <div className="h-60 sm:h-72 w-full rounded-2xl overflow-hidden border border-slate-200/90 dark:border-slate-700/90 relative shadow-inner">
         <div ref={mapContainerRef} className="w-full h-full" />
-        <div className="absolute bottom-2 left-2 z-20 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs text-[10px] text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded shadow-xs border border-slate-200 dark:border-slate-700">
-          {t('location.drag_hint', 'Drag pin or click map to adjust')}
+        <div className="absolute bottom-2.5 left-2.5 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md text-[10.5px] font-medium text-slate-700 dark:text-slate-300 px-3 py-1 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 flex items-center gap-1.5">
+          <span>📍</span>
+          <span>{t('location.drag_hint', 'Move Pin: Drag marker or tap map')}</span>
         </div>
       </div>
 
       {/* Location label input */}
-      <div>
-        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-          {t('location.desc_label', 'Location Description / Landmark')}
+      <div className="pt-1">
+        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+          {t('location.desc_label', 'Landmark / Street Description')}
         </label>
         <input
           type="text"
           value={locationName}
           onChange={(e) => onChange(latitude, longitude, e.target.value)}
-          placeholder="e.g. Near MP Nagar Zone 1, Bhopal"
-          className="w-full px-3 py-2 text-xs border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-sky-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
+          placeholder="e.g. Near MP Nagar Zone 1, Opposite City Bank"
+          className="w-full px-3.5 py-2.5 text-xs sm:text-xs border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
         />
-        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-          {t('location.coords', 'Coordinates')}: {latitude.toFixed(6)}, {longitude.toFixed(6)}
-        </p>
       </div>
     </div>
   );

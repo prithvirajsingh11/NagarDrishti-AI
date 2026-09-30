@@ -223,10 +223,11 @@ export const CivicMap: React.FC<{ onReportNew?: () => void }> = ({ onReportNew }
         </div>
       </div>
 
-      {/* Filter Chips Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 mr-1 flex items-center gap-1">
+      {/* Filter Chips Bar - Mobile Horizontally Scrollable */}
+      <div className="space-y-2">
+        {/* Category Filters */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 mr-1 flex items-center gap-1 shrink-0">
             <Filter size={12} />
             {t('map.category')}
           </span>
@@ -241,7 +242,7 @@ export const CivicMap: React.FC<{ onReportNew?: () => void }> = ({ onReportNew }
               key={cat.id}
               type="button"
               onClick={() => setSelectedCategory(cat.id)}
-              className={`px-3 py-1 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+              className={`px-3 py-1.5 min-h-[34px] rounded-xl text-xs font-medium transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
                 selectedCategory === cat.id
                   ? 'bg-[#0B2545] dark:bg-blue-600 text-white font-semibold shadow-xs'
                   : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
@@ -252,9 +253,9 @@ export const CivicMap: React.FC<{ onReportNew?: () => void }> = ({ onReportNew }
           ))}
         </div>
 
-        {/* Status Filter */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 mr-1">{t('map.status')}</span>
+        {/* Status Filters */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 mr-1 shrink-0">{t('map.status')}</span>
           {[
             { id: 'ALL', label: t('myreports.status_all') },
             { id: 'REPORTED', label: t('myreports.status_reported') },
@@ -265,7 +266,7 @@ export const CivicMap: React.FC<{ onReportNew?: () => void }> = ({ onReportNew }
               key={st.id}
               type="button"
               onClick={() => setSelectedStatus(st.id)}
-              className={`px-2.5 py-1 rounded-xl text-[11px] font-medium transition-colors cursor-pointer ${
+              className={`px-2.5 py-1.5 min-h-[32px] rounded-xl text-[11px] font-medium transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
                 selectedStatus === st.id
                   ? 'bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 font-semibold shadow-xs'
                   : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
@@ -278,7 +279,7 @@ export const CivicMap: React.FC<{ onReportNew?: () => void }> = ({ onReportNew }
       </div>
 
       {/* Leaflet Map Card with Interactive Floating Controls */}
-      <div className="bg-white/90 dark:bg-slate-800/90 rounded-3xl border border-slate-200/80 dark:border-slate-700/80 overflow-hidden shadow-xs h-[520px] relative transition-colors">
+      <div className="bg-white/90 dark:bg-slate-800/90 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-700/80 overflow-hidden shadow-xs h-[52vh] min-h-[340px] sm:h-[500px] relative transition-colors">
         {loading && issues.length === 0 ? (
           <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xs flex items-center justify-center z-20">
             <div className="flex flex-col items-center gap-2">
@@ -296,7 +297,7 @@ export const CivicMap: React.FC<{ onReportNew?: () => void }> = ({ onReportNew }
             type="button"
             onClick={handleLocateMe}
             disabled={gpsLocating}
-            className="p-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-2.5 min-h-[40px] min-w-[40px] flex items-center justify-center rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 transition-colors cursor-pointer"
             title="Center on my location"
             aria-label="Center on my location"
           >
@@ -305,7 +306,7 @@ export const CivicMap: React.FC<{ onReportNew?: () => void }> = ({ onReportNew }
           <button
             type="button"
             onClick={handleResetView}
-            className="p-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-2.5 min-h-[40px] min-w-[40px] flex items-center justify-center rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 transition-colors cursor-pointer"
             title="Reset city center"
             aria-label="Reset view to city center"
           >
@@ -314,8 +315,8 @@ export const CivicMap: React.FC<{ onReportNew?: () => void }> = ({ onReportNew }
         </div>
 
         {/* Floating Incident Count Badge (Bottom Left) */}
-        <div className="absolute bottom-3 left-3 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 px-3.5 py-1.5 rounded-2xl shadow-sm text-xs font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-          <MapPin size={13} className="text-[#0B2545] dark:text-blue-400" />
+        <div className="absolute bottom-3 left-3 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-xl sm:rounded-2xl shadow-sm text-[11px] sm:text-xs font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-1.5 sm:gap-2">
+          <MapPin size={12} className="text-[#0B2545] dark:text-blue-400 shrink-0" />
           <span>{issues.length} {issues.length === 1 ? t('map.incident_plotted') : t('map.incidents_plotted')}</span>
         </div>
       </div>

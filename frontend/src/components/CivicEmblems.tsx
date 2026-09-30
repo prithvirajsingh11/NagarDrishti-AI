@@ -49,7 +49,7 @@ export const AshokaEmblem: React.FC<{ className?: string }> = ({ className = '' 
       {/* Satyameva Jayate Banner base */}
       <path d="M24 114 C35 116 65 116 76 114 L73 120 C60 122 40 122 27 120 Z" opacity="0.75" />
     </svg>
-    <div className="flex flex-col justify-center leading-tight">
+    <div className="hidden sm:flex flex-col justify-center leading-tight">
       <span className="text-[11px] font-semibold text-slate-800 dark:text-slate-100 tracking-tight">भारत सरकार</span>
       <span className="text-[10px] font-medium text-slate-600 dark:text-slate-300 tracking-tight">Government of India</span>
     </div>

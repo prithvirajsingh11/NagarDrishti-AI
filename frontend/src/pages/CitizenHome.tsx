@@ -108,17 +108,17 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
           </div>
 
           {/* Primary Action Button */}
-          <div className="pt-1 flex flex-wrap items-center gap-3">
+          <div className="pt-1 flex flex-col sm:flex-row sm:items-center gap-3">
             <button
               onClick={onStartReport}
-              className="px-6 py-3 bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm rounded-2xl transition-all inline-flex items-center gap-2.5 cursor-pointer shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
+              className="w-full sm:w-auto px-6 py-3.5 sm:py-3 bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm rounded-2xl transition-all inline-flex items-center justify-center gap-2.5 cursor-pointer shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 min-h-[46px]"
             >
               <Camera size={18} />
               <span>{t('home.cta_button')}</span>
               <ChevronRight size={16} className="text-slate-400 dark:text-blue-200 ml-0.5" />
             </button>
             {!isLoggedIn && (
-              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium text-center sm:text-left">
                 • {t('auth.signup', 'Sign up')} required to submit
               </span>
             )}
@@ -141,7 +141,7 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
                   key={cat.type}
                   type="button"
                   onClick={onStartReport}
-                  className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-750 border border-slate-200/70 dark:border-slate-700 text-left transition-all hover:-translate-y-0.5 hover:shadow-xs cursor-pointer flex items-center gap-2 select-none group"
+                  className="p-2.5 min-h-[48px] rounded-xl bg-slate-50 dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-750 border border-slate-200/70 dark:border-slate-700 text-left transition-all hover:-translate-y-0.5 hover:shadow-xs cursor-pointer flex items-center gap-2 select-none group"
                 >
                   <span className="text-lg group-hover:scale-110 transition-transform">{cat.icon}</span>
                   <div className="min-w-0">
@@ -173,17 +173,17 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
           </div>
         </div>
 
-        <form onSubmit={handleQuickTrackSubmit} className="flex gap-2">
+        <form onSubmit={handleQuickTrackSubmit} className="flex flex-col sm:flex-row gap-2">
           <input
             type="text"
             value={trackInput}
             onChange={(e) => setTrackInput(e.target.value)}
             placeholder={t('home.track_input_placeholder', 'Enter Report ID (e.g. ND-2026-4891)...')}
-            className="flex-1 px-3.5 py-2.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:border-blue-500 font-mono transition-colors"
+            className="flex-1 px-3.5 py-3 sm:py-2.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:border-blue-500 font-mono transition-colors min-h-[44px]"
           />
           <button
             type="submit"
-            className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-medium text-xs rounded-xl transition-all shrink-0 cursor-pointer shadow-xs inline-flex items-center gap-1.5"
+            className="px-4 py-3 sm:py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-medium text-xs rounded-xl transition-all shrink-0 cursor-pointer shadow-xs inline-flex items-center justify-center gap-1.5 min-h-[44px]"
           >
             <span>{t('home.track_button', 'Track Status')}</span>
             <ArrowRight size={13} />
@@ -392,7 +392,7 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
       {/* Interactive Quick Preview Modal */}
       {previewComplaint && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-850 rounded-3xl border border-slate-200 dark:border-slate-700 p-6 max-w-lg w-full shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white dark:bg-slate-850 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-700 p-4 sm:p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-750">
               <div className="space-y-0.5">
                 <div className="text-xs font-mono font-semibold text-slate-400">
@@ -405,7 +405,7 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
               <button
                 type="button"
                 onClick={() => setPreviewComplaint(null)}
-                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-400 hover:text-slate-700 cursor-pointer"
+                className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-400 hover:text-slate-700 cursor-pointer min-h-[40px] min-w-[40px] flex items-center justify-center"
               >
                 <X size={18} />
               </button>
@@ -419,7 +419,7 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className="grid grid-cols-2 gap-2.5 text-xs">
               <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700/80">
                 <div className="text-[10px] uppercase font-semibold text-slate-400 mb-1">Status</div>
                 <StatusBadge status={previewComplaint.status} />
@@ -432,14 +432,14 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
 
             <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
               <MapPin size={14} className="text-slate-400 shrink-0" />
-              <span>{previewComplaint.location_name}</span>
+              <span className="truncate">{previewComplaint.location_name}</span>
             </div>
 
-            <div className="pt-2 flex justify-end gap-2">
+            <div className="pt-2 flex flex-col sm:flex-row justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setPreviewComplaint(null)}
-                className="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-750 text-slate-700 dark:text-slate-300 hover:bg-slate-200 cursor-pointer"
+                className="w-full sm:w-auto px-4 py-2.5 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-750 text-slate-700 dark:text-slate-300 hover:bg-slate-200 cursor-pointer text-center min-h-[40px]"
               >
                 Close
               </button>
@@ -449,7 +449,7 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
                   window.location.hash = `track?id=${encodeURIComponent(previewComplaint.report_id)}`;
                   setPreviewComplaint(null);
                 }}
-                className="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white cursor-pointer inline-flex items-center gap-1.5 shadow-xs"
+                className="w-full sm:w-auto px-4 py-2.5 text-xs font-semibold rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white cursor-pointer inline-flex items-center justify-center gap-1.5 shadow-xs min-h-[40px]"
               >
                 <span>Full Audit Timeline</span>
                 <ExternalLink size={12} />

@@ -82,14 +82,42 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   background: #574c43;
 }
 
+/* Hide scrollbar for clean touch carousels */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Touch manipulation & input accessibility */
+button, a, input, select, textarea {
+  touch-action: manipulation;
+}
+
+/* Prevent iOS Safari auto-zoom on form inputs by guaranteeing 16px base font on mobile */
+@media (max-width: 640px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
 /* Leaflet map styles with warm creamy night filter in dark mode */
 .leaflet-container {
   width: 100%;
   height: 100%;
   border-radius: 0.75rem;
   z-index: 10;
+  touch-action: pan-x pan-y;
 }
 
 html.dark .leaflet-tile {
   filter: brightness(0.78) invert(1) contrast(2.3) hue-rotate(170deg) sepia(0.38) saturate(0.85);
 }
+

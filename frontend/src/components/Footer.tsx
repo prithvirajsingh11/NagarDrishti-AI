@@ -6,7 +6,7 @@ export const Footer: React.FC = () => {
   const { t } = useLanguage();
 
   return (
-    <footer className="border-t border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 py-4 px-4 sm:px-6 lg:px-8 text-xs text-slate-500 dark:text-slate-400 mt-auto select-none transition-colors duration-200">
+    <footer className="border-t border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 pt-4 pb-20 lg:pb-4 px-4 sm:px-6 lg:px-8 text-xs text-slate-500 dark:text-slate-400 mt-auto select-none transition-colors duration-200">
       <div className="max-w-[1520px] mx-auto flex flex-col md:flex-row items-center justify-between gap-3 font-sans">
         {/* Left Side: Brand and Ministry Info */}
         <div className="flex items-center gap-3">

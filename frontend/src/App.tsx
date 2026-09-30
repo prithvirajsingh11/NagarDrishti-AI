@@ -3,6 +3,7 @@ import { Loader2 } from 'lucide-react';
 import type { Complaint } from './types/complaint';
 import { Navbar } from './components/Navbar';
 import { Sidebar, type NavView } from './components/Sidebar';
+import { MobileBottomNav } from './components/MobileBottomNav';
 import { Footer } from './components/Footer';
 import { CitizenHome } from './pages/CitizenHome';
 import { ReportFlow } from './pages/ReportFlow';
@@ -23,6 +24,7 @@ export function App() {
   const [selectedComplaintId, setSelectedComplaintId] = useState<string | null>(null);
   const [trackReportId, setTrackReportId] = useState<string | null>(null);
   const [authErrorMessage, setAuthErrorMessage] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Sync with browser hash if user navigates via URL
   useEffect(() => {
@@ -184,10 +186,16 @@ export function App() {
   return (
     <div className="min-h-screen flex flex-col bg-[#FAFBFD] dark:bg-[#171513] text-slate-900 dark:text-slate-100 font-sans antialiased transition-colors duration-200">
       {/* Top Header Navbar */}
-      <Navbar currentView={currentView} onNavigate={navigateTo} />
+      <Navbar
+        currentView={currentView}
+        onNavigate={navigateTo}
+        mobileMenuOpen={mobileMenuOpen}
+        onToggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
+        onCloseMobileMenu={() => setMobileMenuOpen(false)}
+      />
 
       {/* Main Container with Sidebar + Content */}
-      <div className="flex-1 max-w-[1520px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col lg:flex-row gap-6">
+      <div className="flex-1 max-w-[1520px] w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24 lg:pb-6 flex flex-col lg:flex-row gap-6">
         {/* Left Sidebar (visible on desktop) */}
         {currentView !== 'auth' && (
           <Sidebar
@@ -262,6 +270,15 @@ export function App() {
 
       {/* Footer */}
       <Footer />
+
+      {/* Mobile Bottom Navigation (Visible on phones & tablets, hidden on lg desktop) */}
+      {currentView !== 'auth' && (
+        <MobileBottomNav
+          currentView={currentView}
+          onNavigate={navigateTo}
+          onOpenMenu={() => setMobileMenuOpen(true)}
+        />
+      )}
     </div>
   );
 }
