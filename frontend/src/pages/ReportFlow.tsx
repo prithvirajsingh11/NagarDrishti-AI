@@ -124,6 +124,7 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
 
   // Submission state
   const [submittedComplaint, setSubmittedComplaint] = useState<Complaint | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   // Auto-detect geolocation if possible
   const handleAutoDetectLocation = () => {
@@ -192,8 +193,6 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
       </div>
     );
   }
-
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   // Handle local file selection with strict validation & Android-friendly client optimization
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {

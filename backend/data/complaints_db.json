@@ -1,7 +1,7 @@
 [
   {
-    "id": "480fd3dc-4c36-4fd0-bb97-c3b026a7b939",
-    "report_id": "NGD-2026-00238",
+    "id": "e7e6bbfe-c2b4-4f8f-8f93-542fe8d38862",
+    "report_id": "NGD-2026-00350",
     "citizen_id": "11111111-1111-1111-1111-111111111111",
     "problem_type": "pothole",
     "confidence": 0.92,
@@ -24,7 +24,7 @@
     "citizen_reopened": false,
     "citizen_reopened_at": null,
     "reopen_reason": null,
-    "created_at": "2026-10-01T06:56:54.478007+00:00",
-    "updated_at": "2026-10-01T06:56:54.478007+00:00"
+    "created_at": "2026-10-01T08:16:07.882808+00:00",
+    "updated_at": "2026-10-01T08:16:07.882808+00:00"
   }
 ]
