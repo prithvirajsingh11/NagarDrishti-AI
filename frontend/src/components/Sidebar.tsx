@@ -55,10 +55,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, class
 
   return (
     <aside
-      className={`w-60 shrink-0 flex flex-col justify-between py-6 pr-4 pl-3 select-none ${className}`}
+      className={`w-60 shrink-0 sticky top-[5.5rem] self-start h-[calc(100vh-7rem)] flex flex-col justify-between py-2 pr-4 pl-3 select-none ${className}`}
     >
       {/* Navigation Items List */}
-      <nav className="space-y-1.5">
+      <nav className="space-y-1.5 overflow-y-auto min-h-0 pr-1 no-scrollbar">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentView === item.id;
@@ -98,7 +98,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, class
       </nav>
 
       {/* Bottom Clean & Green India Card */}
-      <div className="pt-6">
+      <div className="pt-4 shrink-0">
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-3.5 shadow-2xs text-center flex flex-col items-center overflow-hidden">
           <div className="w-9 h-9 rounded-lg bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center text-slate-700 dark:text-slate-200 mb-2">
             <MonumentIcon className="w-5 h-5 text-slate-800 dark:text-slate-200" />
