@@ -73,7 +73,7 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
   });
 
   return (
-    <div className="max-w-3xl mx-auto px-3 sm:px-4 pt-4 sm:pt-8 pb-28 sm:pb-8 space-y-5 sm:space-y-6">
+    <div className="max-w-3xl mx-auto px-3 sm:px-4 pt-3 sm:pt-6 pb-2 sm:pb-4 space-y-4 sm:space-y-6 animate-fade-slide-up">
       {/* Hero Card */}
       <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 sm:p-7 border border-slate-200 dark:border-slate-700 shadow-2xs relative overflow-hidden transition-colors">
         <div className="space-y-5">
@@ -107,16 +107,19 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
           <div className="pt-1 flex flex-col sm:flex-row sm:items-center gap-3">
             <button
               onClick={onStartReport}
-              className="w-full sm:w-auto px-6 py-3 bg-[#0B2545] hover:bg-[#07192f] dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm rounded-xl transition-colors inline-flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-98 min-h-[44px]"
+              className="w-full sm:w-auto px-6 py-3 bg-[#0B2545] hover:bg-[#07192f] dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm rounded-xl transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer shadow-md hover:shadow-lg active:scale-95 min-h-[44px]"
             >
               <Camera size={16} />
               <span>{t('home.cta_button')}</span>
               <ChevronRight size={15} className="text-slate-300 dark:text-blue-200 ml-0.5" />
             </button>
             {!isLoggedIn && (
-              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium text-center sm:text-left">
+              <a
+                href="#auth"
+                className="text-xs text-blue-600 dark:text-blue-400 font-semibold hover:underline text-center sm:text-left"
+              >
                 • {t('auth.signup', 'Sign up')} required to submit
-              </span>
+              </a>
             )}
           </div>
 
@@ -136,7 +139,7 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
                   key={cat.type}
                   type="button"
                   onClick={onStartReport}
-                  className="p-2.5 min-h-[46px] rounded-xl bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 text-left transition-colors cursor-pointer flex items-center gap-2 select-none group"
+                  className="p-2.5 min-h-[46px] rounded-xl bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xs active:scale-95 cursor-pointer flex items-center gap-2 select-none group"
                 >
                   <span className="text-base">{cat.icon}</span>
                   <div className="min-w-0">
@@ -178,7 +181,7 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
           />
           <button
             type="submit"
-            className="px-4 py-3 sm:py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-medium text-xs rounded-xl transition-all shrink-0 cursor-pointer shadow-xs inline-flex items-center justify-center gap-1.5 min-h-[44px]"
+            className="px-4 py-3 sm:py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-medium text-xs rounded-xl transition-all duration-150 shrink-0 cursor-pointer shadow-xs active:scale-95 inline-flex items-center justify-center gap-1.5 min-h-[44px]"
           >
             <span>{t('home.track_button', 'Track Status')}</span>
             <ArrowRight size={13} />
@@ -245,31 +248,6 @@ export const CitizenHome: React.FC<CitizenHomeProps> = ({ onStartReport, onSelec
           </div>
         </div>
       )}
-
-      {/* 3 Step Process Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
-        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs">
-          <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-mono font-bold text-xs mx-auto mb-2 flex items-center justify-center">
-            01
-          </div>
-          <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-0.5">{t('home.step1_title')}</div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400">{t('home.step1_desc')}</div>
-        </div>
-        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs">
-          <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-mono font-bold text-xs mx-auto mb-2 flex items-center justify-center">
-            02
-          </div>
-          <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-0.5">{t('home.step2_title')}</div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400">{t('home.step2_desc')}</div>
-        </div>
-        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs">
-          <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-mono font-bold text-xs mx-auto mb-2 flex items-center justify-center">
-            03
-          </div>
-          <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-0.5">{t('home.step3_title')}</div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400">{t('home.step3_desc')}</div>
-        </div>
-      </div>
 
       {/* Recent Reports Section with Interactive Filtering */}
       <div className="space-y-3 pt-2">

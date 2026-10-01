@@ -121,7 +121,7 @@ export const PublicStatusTracker: React.FC<PublicStatusTrackerProps> = ({
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 space-y-6 font-sans select-none">
+    <div className="max-w-4xl mx-auto px-4 py-8 pb-4 lg:pb-6 space-y-6 font-sans select-none animate-fade-slide-up">
       {/* Top Government Portal Crest & Header */}
       <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/90 dark:border-slate-700/80 p-6 sm:p-7 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-700 pb-4">

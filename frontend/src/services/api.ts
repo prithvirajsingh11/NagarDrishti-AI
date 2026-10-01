@@ -34,19 +34,23 @@ const IS_REMOTE_PROD_URL =
 // Clean up configured base root (without trailing /api or slash)
 const configuredBase = RAW_API_BASE.replace(/\/api\/?$/, '').replace(/\/+$/, '');
 
+const isLoopback = (url: string | null | undefined): boolean =>
+  Boolean(url && (url.includes('localhost') || url.includes('127.0.0.1')));
+
 // Candidate mobile hosts for local development:
-// 1. Configured base URL from .env (e.g. Wi-Fi IP http://192.168.1.5:8000)
-// 2. Wi-Fi IP fallback
-// 3. localhost / 127.0.0.1 (USB cable via ADB reverse)
-// 4. 10.0.2.2 (Android emulator)
+// 1. Local Wi-Fi IP (http://192.168.1.5:8000)
+// 2. Configured non-loopback base URL
+// 3. Android emulator gateway (http://10.0.2.2:8000)
+// 4. Loopback / ADB reverse fallbacks
 const MOBILE_CANDIDATE_HOSTS: string[] = Array.from(
   new Set(
     [
-      configuredBase,
       'http://192.168.1.5:8000',
+      !isLoopback(configuredBase) ? configuredBase : '',
+      'http://10.0.2.2:8000',
+      isLoopback(configuredBase) ? configuredBase : '',
       'http://localhost:8000',
       'http://127.0.0.1:8000',
-      'http://10.0.2.2:8000',
     ].filter(Boolean)
   )
 );
@@ -56,9 +60,19 @@ const cachedBase =
     ? localStorage.getItem('nagardrishti_api_base')
     : null;
 
-let activeMobileBase =
-  cachedBase ||
-  (configuredBase ? `${configuredBase}/api` : `${MOBILE_CANDIDATE_HOSTS[0]}/api`);
+// On native Android mobile, ignore stale localhost cache and prioritize Wi-Fi network host
+let activeMobileBase: string = (() => {
+  if (Capacitor.isNativePlatform()) {
+    if (cachedBase && !isLoopback(cachedBase)) {
+      return cachedBase;
+    }
+    if (configuredBase && !isLoopback(configuredBase)) {
+      return configuredBase.endsWith('/api') ? configuredBase : `${configuredBase}/api`;
+    }
+    return 'http://192.168.1.5:8000/api';
+  }
+  return cachedBase || (configuredBase ? `${configuredBase}/api` : '/api');
+})();
 
 let probePromise: Promise<string> | null = null;
 
@@ -197,15 +211,27 @@ export async function apiFetch(
     if (err.name === 'AbortError') {
       throw new Error('Request timed out. Please check your network connection and try again.');
     }
-    if (err instanceof TypeError && err.message.toLowerCase().includes('failed to fetch')) {
+    const msg = typeof err?.message === 'string' ? err.message.toLowerCase() : '';
+    const isNetworkErr =
+      err instanceof TypeError ||
+      err?.name === 'TypeError' ||
+      err?.name === 'NetworkError' ||
+      msg.includes('failed to fetch') ||
+      msg.includes('failed to connect') ||
+      msg.includes('networkerror') ||
+      msg.includes('network request failed') ||
+      msg.includes('connection refused') ||
+      msg.includes('econnrefused');
+
+    if (isNetworkErr) {
       if (Capacitor.isNativePlatform() && !IS_REMOTE_PROD_URL) {
         probePromise = null;
         for (const candidate of MOBILE_CANDIDATE_HOSTS) {
-          const candidateBase = `${candidate}/api`;
+          const candidateBase = candidate.endsWith('/api') ? candidate : `${candidate}/api`;
           if (activeMobileBase === candidateBase) continue;
           try {
             const probeCtrl = new AbortController();
-            const probeTimer = setTimeout(() => probeCtrl.abort(), 1800);
+            const probeTimer = setTimeout(() => probeCtrl.abort(), 2000);
             const probeRes = await fetch(`${candidateBase}/health`, { signal: probeCtrl.signal });
             clearTimeout(probeTimer);
             if (probeRes.ok) {
@@ -224,7 +250,11 @@ export async function apiFetch(
           }
         }
       }
-      throw new Error('Network connection failed. Please ensure your device is connected to the same Wi-Fi as the server.');
+      throw new Error(
+        Capacitor.isNativePlatform()
+          ? 'Network connection failed. Please ensure your mobile device is connected to the same Wi-Fi network as the backend server (http://192.168.1.5:8000).'
+          : 'Network connection failed. Please check your internet connection.'
+      );
     }
     throw err;
   } finally {

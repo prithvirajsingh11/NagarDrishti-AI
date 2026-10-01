@@ -453,7 +453,7 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-3 sm:px-4 pt-4 sm:pt-6 pb-28 lg:pb-8 space-y-5 sm:space-y-6">
+    <div className="max-w-4xl mx-auto px-3 sm:px-4 pt-4 sm:pt-6 pb-4 lg:pb-6 space-y-5 sm:space-y-6 animate-fade-slide-up">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/80 dark:border-slate-800">
         <div>
           <h1 className="text-lg font-bold text-slate-900 dark:text-white">{t('myreports.title')}</h1>

@@ -58,7 +58,7 @@ export const HelpSupport: React.FC = () => {
   );
 
   return (
-    <div className="space-y-6 font-sans select-none max-w-4xl mx-auto">
+    <div className="space-y-6 font-sans select-none max-w-4xl mx-auto pb-4 lg:pb-6 animate-fade-slide-up">
       {/* Header */}
       <div className="pb-3 border-b border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
         <div>

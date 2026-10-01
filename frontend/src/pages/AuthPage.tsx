@@ -200,7 +200,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   }
 
   return (
-    <div className="max-w-md mx-auto px-4 py-8">
+    <div className="w-full max-w-md mx-auto px-4 py-6 sm:py-8 animate-fade-slide-up">
       {/* Return button */}
       <button
         onClick={() => {

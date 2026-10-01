@@ -227,7 +227,7 @@ export function App() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans antialiased transition-colors duration-200">
+    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans antialiased transition-colors duration-200 overflow-x-hidden w-full max-w-full">
       {/* Top Header Navbar */}
       <Navbar
         currentView={currentView}
@@ -238,7 +238,7 @@ export function App() {
       />
 
       {/* Main Container with Sidebar + Content */}
-      <div className="flex-1 max-w-[1520px] w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24 lg:pb-6 flex flex-col lg:flex-row gap-6">
+      <div className="w-full flex-1 max-w-[1520px] mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-6 pb-2 sm:pb-6 flex flex-col lg:flex-row gap-6">
         {/* Left Sidebar (visible on desktop) */}
         {currentView !== 'auth' && (
           <Sidebar

@@ -280,7 +280,7 @@ export const AuthorityDashboard: React.FC = () => {
   const resolvedCount = complaints.filter((c) => c.status === 'RESOLVED').length;
 
   return (
-    <div className="w-full space-y-4 font-sans select-none pb-24 lg:pb-8">
+    <div className="w-full space-y-4 font-sans select-none pb-4 lg:pb-6 animate-fade-slide-up">
       {/* 1. Header & Title */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/80 dark:border-slate-800">
         <div>

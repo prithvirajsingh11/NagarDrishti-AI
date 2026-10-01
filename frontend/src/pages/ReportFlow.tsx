@@ -1,4 +1,6 @@
 import React, { useRef, useState } from 'react';
+import { Camera as CapCamera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { Capacitor } from '@capacitor/core';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -55,40 +57,6 @@ type Step =
   | 'confirm'
   | 'submitting'
   | 'success';
-
-// Pre-tested offline demonstration image pack
-const SAMPLE_TEST_IMAGES = [
-  {
-    nameKey: 'problems.pothole',
-    defaultName: 'Pothole (Road)',
-    category: 'pothole',
-    url: '/demo-images/pothole.jpg',
-  },
-  {
-    nameKey: 'problems.garbage',
-    defaultName: 'Garbage Dump',
-    category: 'garbage',
-    url: '/demo-images/garbage.jpg',
-  },
-  {
-    nameKey: 'problems.streetlight',
-    defaultName: 'Broken Streetlight',
-    category: 'streetlight',
-    url: '/demo-images/streetlight.jpg',
-  },
-  {
-    nameKey: 'problems.drain',
-    defaultName: 'Blocked Drain',
-    category: 'drain',
-    url: '/demo-images/drain.jpg',
-  },
-  {
-    nameKey: 'problems.other',
-    defaultName: 'Unclear Photo (Test Guard)',
-    category: 'other',
-    url: '/demo-images/unclear.jpg',
-  },
-];
 
 export const ReportFlow: React.FC<ReportFlowProps> = ({
   onCancel,
@@ -194,53 +162,100 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
     );
   }
 
-  // Handle local file selection with strict validation & Android-friendly client optimization
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const rawFile = e.target.files[0];
-      const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
-      if (!validTypes.includes(rawFile.type.toLowerCase()) || rawFile.size > 10 * 1024 * 1024) {
-        setAnalyzingError('Please upload a valid image (JPG, PNG, WEBP - Max 10MB).');
-        return;
-      }
-      try {
-        const optimized = await optimizeImageForUpload(rawFile);
-        setSelectedFile(optimized);
-        setPreviewUrl(URL.createObjectURL(optimized));
-        setAnalyzingError(null);
-      } catch (err: any) {
-        // Fallback to original file if client optimization encounters an issue
-        setSelectedFile(rawFile);
-        setPreviewUrl(URL.createObjectURL(rawFile));
-        setAnalyzingError(null);
-      }
+  // Process image with client-side optimization and validation
+  const processSelectedFile = async (rawFile: File) => {
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+    if (!validTypes.includes(rawFile.type.toLowerCase()) || rawFile.size > 10 * 1024 * 1024) {
+      setAnalyzingError('Please upload a valid image (JPG, PNG, WEBP - Max 10MB).');
+      return;
+    }
+    try {
+      const optimized = await optimizeImageForUpload(rawFile);
+      setSelectedFile(optimized);
+      setPreviewUrl(URL.createObjectURL(optimized));
+      setAnalyzingError(null);
+    } catch {
+      // Fallback to original file if client optimization encounters an issue
+      setSelectedFile(rawFile);
+      setPreviewUrl(URL.createObjectURL(rawFile));
+      setAnalyzingError(null);
     }
   };
 
-  // Quick-pick sample image loader for testing
-  const handleSelectSample = async (sampleUrl: string, sampleName: string) => {
-    try {
-      setAnalyzingError(null);
-      const res = await fetch(sampleUrl);
-      const blob = await res.blob();
-      const file = new File(
-        [blob],
-        `${sampleName.toLowerCase().replace(/[\s()]+/g, '_')}.jpg`,
-        { type: 'image/jpeg' }
-      );
-      setSelectedFile(file);
-      setPreviewUrl(sampleUrl);
-    } catch (err) {
-      console.error('Error loading sample image', err);
+  // Handle local file selection from input
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      await processSelectedFile(e.target.files[0]);
     }
+  };
+
+  // Direct camera capture: on Android native app opens hardware camera directly, on website triggers input
+  const handleTakePhoto = async () => {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const photo = await CapCamera.getPhoto({
+          quality: 90,
+          allowEditing: false,
+          resultType: CameraResultType.Uri,
+          source: CameraSource.Camera,
+        });
+
+        if (photo.webPath) {
+          const response = await fetch(photo.webPath);
+          const blob = await response.blob();
+          const ext = photo.format || 'jpg';
+          const file = new File([blob], `civic-camera-${Date.now()}.${ext}`, {
+            type: blob.type || `image/${ext}`,
+          });
+          await processSelectedFile(file);
+          return;
+        }
+      } catch (err: any) {
+        if (err?.message?.includes('User cancelled') || err?.message?.includes('cancelled')) {
+          return;
+        }
+        console.warn('Native camera capture failed, falling back to input:', err);
+      }
+    }
+
+    cameraInputRef.current?.click();
+  };
+
+  // Gallery picker: on Android native app opens photo library directly, on website triggers input
+  const handleOpenGallery = async () => {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const photo = await CapCamera.getPhoto({
+          quality: 90,
+          allowEditing: false,
+          resultType: CameraResultType.Uri,
+          source: CameraSource.Photos,
+        });
+
+        if (photo.webPath) {
+          const response = await fetch(photo.webPath);
+          const blob = await response.blob();
+          const ext = photo.format || 'jpg';
+          const file = new File([blob], `civic-gallery-${Date.now()}.${ext}`, {
+            type: blob.type || `image/${ext}`,
+          });
+          await processSelectedFile(file);
+          return;
+        }
+      } catch (err: any) {
+        if (err?.message?.includes('User cancelled') || err?.message?.includes('cancelled')) {
+          return;
+        }
+        console.warn('Native gallery picker failed, falling back to input:', err);
+      }
+    }
+
+    galleryInputRef.current?.click();
   };
 
   // Trigger AI Analysis
   const handleStartAnalysis = async () => {
     if (!selectedFile) {
-      if (SAMPLE_TEST_IMAGES.length > 0) {
-        await handleSelectSample(SAMPLE_TEST_IMAGES[0].url, SAMPLE_TEST_IMAGES[0].defaultName);
-      }
       return;
     }
 
@@ -325,12 +340,12 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
   const stepNumber = getStepNumber();
 
   return (
-    <div className="w-full font-sans select-none pb-28 lg:pb-8">
+    <div className="w-full font-sans select-none pb-4 lg:pb-6 animate-fade-slide-up">
       {/* Hidden file inputs for Camera vs Gallery */}
       <input
         ref={cameraInputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp"
+        accept="image/*"
         capture="environment"
         onChange={handleFileChange}
         className="hidden"
@@ -343,7 +358,7 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
         className="hidden"
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-8 items-start">
         {/* CENTER / MAIN CONTENT (8 cols on desktop) */}
         <div className="lg:col-span-8 space-y-4">
           {/* Top row: Back button & Step progress */}
@@ -432,7 +447,7 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 w-full pt-1">
                       <button
                         type="button"
-                        onClick={() => cameraInputRef.current?.click()}
+                        onClick={handleTakePhoto}
                         className="w-full sm:w-auto py-2.5 px-4 bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
                       >
                         <Camera size={14} />
@@ -440,7 +455,7 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
                       </button>
                       <button
                         type="button"
-                        onClick={() => galleryInputRef.current?.click()}
+                        onClick={handleOpenGallery}
                         className="w-full sm:w-auto py-2.5 px-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
                       >
                         <ImageIcon size={14} />
@@ -484,7 +499,7 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2.5 mt-5 w-full max-w-sm">
                       <button
                         type="button"
-                        onClick={() => cameraInputRef.current?.click()}
+                        onClick={handleTakePhoto}
                         className="w-full py-2.5 px-6 bg-[#0B2545] hover:bg-[#07192f] dark:bg-blue-600 dark:hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold rounded-xl flex items-center justify-center gap-2.5 shadow-xs transition-colors cursor-pointer"
                       >
                         <Camera size={16} strokeWidth={2} />
@@ -493,38 +508,12 @@ export const ReportFlow: React.FC<ReportFlowProps> = ({
 
                       <button
                         type="button"
-                        onClick={() => galleryInputRef.current?.click()}
+                        onClick={handleOpenGallery}
                         className="w-full py-2.5 px-6 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-medium rounded-xl flex items-center justify-center gap-2.5 transition-colors cursor-pointer shadow-2xs"
                       >
                         <ImageIcon size={16} />
                         <span>{t('report.choose_gallery', 'Choose from Gallery')}</span>
                       </button>
-                    </div>
-
-                    {/* Quick Demo Pack Samples */}
-                    <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800 w-full max-w-md">
-                      <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-2 flex items-center justify-between">
-                        <span className="flex items-center gap-1.5">
-                          <ImageIcon size={12} className="text-slate-400" />
-                          <span>{t('report.demo_pack', 'Quick Demo Samples')}:</span>
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-normal">
-                          {t('report.click_to_load', 'Click to test')}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                        {SAMPLE_TEST_IMAGES.map((sample) => (
-                          <button
-                            key={sample.category}
-                            type="button"
-                            onClick={() => handleSelectSample(sample.url, sample.defaultName)}
-                            className="px-2 py-1.5 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-750 text-[11px] font-medium rounded-lg border border-slate-200/80 dark:border-slate-700 transition-colors text-left flex items-center gap-1.5 cursor-pointer truncate"
-                          >
-                            <ProblemIcon type={sample.category as ProblemType} size={12} />
-                            <span className="truncate">{t(sample.nameKey, sample.defaultName)}</span>
-                          </button>
-                        ))}
-                      </div>
                     </div>
                   </>
                 )}

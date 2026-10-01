@@ -181,7 +181,7 @@ export const CivicMap: React.FC<{ onReportNew?: () => void }> = ({ onReportNew }
   };
 
   return (
-    <div className="space-y-4 font-sans select-none max-w-5xl mx-auto px-3 sm:px-4 pb-28 lg:pb-8">
+    <div className="space-y-4 font-sans select-none max-w-5xl mx-auto px-3 sm:px-4 pb-4 lg:pb-6 animate-fade-slide-up">
       {/* Map Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/80 dark:border-slate-800">
         <div>

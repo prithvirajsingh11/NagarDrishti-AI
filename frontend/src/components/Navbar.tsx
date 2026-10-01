@@ -107,13 +107,13 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header
-      className={`sticky top-0 ${isMenuOpen ? 'z-50' : 'z-40'} bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-2xs transition-colors safe-top`}
+      className={`sticky top-0 ${isMenuOpen ? 'z-50' : 'z-40'} w-full max-w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-2xs transition-colors safe-top overflow-hidden`}
       style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 0px)' }}
     >
       <div className="max-w-[1520px] mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-15 sm:h-16 gap-2 sm:gap-4">
           {/* Left: Emblem of India + NagarDrishti AI Brand */}
-          <div className="flex items-center gap-2 sm:gap-4 shrink-0 min-w-0">
+          <div className="flex items-center gap-1.5 sm:gap-4 shrink min-w-0">
             {/* National Emblem of India */}
             <div
               className="flex items-center cursor-pointer hover:opacity-90 transition-opacity shrink-0"
@@ -128,13 +128,13 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* NagarDrishti AI Logo & Tagline */}
             <div
-              className="flex items-center gap-2 cursor-pointer select-none group min-w-0"
+              className="flex items-center gap-1.5 sm:gap-2 cursor-pointer select-none group min-w-0 shrink"
               onClick={() => onNavigate('home')}
             >
-              <NagarDrishtiLogo size={30} className="sm:w-[34px] sm:h-[34px] shrink-0" />
-              <div className="flex flex-col justify-center leading-none min-w-0">
-                <div className="flex items-center gap-1">
-                  <span className="font-bold text-[14px] sm:text-[16px] text-slate-900 dark:text-white tracking-tight font-sans group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
+              <NagarDrishtiLogo size={28} className="sm:w-[34px] sm:h-[34px] shrink-0" />
+              <div className="flex flex-col justify-center leading-none min-w-0 shrink">
+                <div className="flex items-center gap-1 min-w-0">
+                  <span className="font-bold text-[13px] sm:text-[16px] text-slate-900 dark:text-white tracking-tight font-sans group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
                     NagarDrishti AI
                   </span>
                 </div>
@@ -387,7 +387,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 )}
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="hidden md:flex items-center gap-1.5 sm:gap-2">
                 <button
                   type="button"
                   onClick={() => onNavigate('auth', 'login')}
@@ -449,7 +449,30 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <span>Sign Out</span>
                 </button>
               </div>
-            ) : null}
+            ) : (
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeMenu();
+                    onNavigate('auth', 'login');
+                  }}
+                  className="flex-1 py-2.5 text-center text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer min-h-[40px]"
+                >
+                  {t('auth.login', 'Sign In')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeMenu();
+                    onNavigate('auth', 'signup');
+                  }}
+                  className="flex-1 py-2.5 text-center text-xs font-semibold bg-[#0B2545] hover:bg-[#07192f] dark:bg-blue-600 dark:hover:bg-blue-700 text-white rounded-xl transition-colors cursor-pointer shadow-xs min-h-[40px]"
+                >
+                  {t('auth.signup', 'Sign Up')}
+                </button>
+              </div>
+            )}
 
             {/* Mobile Search */}
             <div>
