@@ -45,45 +45,8 @@ async def _resolve_user_from_request(
             detail="Authentication required to view complaint evidence."
         )
 
-    # Automated testing fast path
-    if raw_token in TEST_TOKENS:
-        return TEST_TOKENS[raw_token]
+    return await get_current_user(HTTPAuthorizationCredentials(scheme="Bearer", credentials=raw_token))
 
-    # Supabase Auth verification
-    if settings.SUPABASE_URL and settings.SUPABASE_SERVICE_ROLE_KEY:
-        try:
-            from supabase import create_client
-            client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
-            user_response = client.auth.get_user(raw_token)
-            if not user_response or not user_response.user:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid or expired session."
-                )
-            u = user_response.user
-            uid = str(u.id)
-            email = u.email or ""
-            role = "citizen"
-            try:
-                prof = client.table("profiles").select("role").eq("user_id", uid).execute()
-                if prof.data:
-                    role = prof.data[0].get("role", "citizen")
-            except Exception:
-                pass
-            return {"id": uid, "email": email, "role": role}
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.warning(f"Image auth failed: {e}")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Authentication failed."
-            )
-
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Authentication required."
-    )
 
 
 @router.post("/upload", response_model=dict)
