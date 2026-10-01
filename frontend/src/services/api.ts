@@ -197,7 +197,7 @@ export function getControlledImageUrl(url?: string | null, token?: string | null
 export async function apiFetch(
   input: string,
   init?: RequestInit,
-  timeoutMs: number = 30000
+  timeoutMs: number = 60000
 ): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
