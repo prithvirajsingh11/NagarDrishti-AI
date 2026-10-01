@@ -87,11 +87,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, class
                 />
                 <span className="tracking-tight truncate">{label}</span>
               </div>
-
-              {/* Subdued Hotkey Badge for Power Users */}
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-slate-200/60 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
-                {item.key}
-              </span>
             </button>
           );
         })}
