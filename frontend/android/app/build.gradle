@@ -29,9 +29,26 @@ android {
     }
 }
 
-task syncLocalAssets(type: Copy) {
-    from 'src/main/assets'
-    into file("C:/Users/prith/.gradle/nagardrishti-build/assets")
+task syncLocalAssets {
+    doNotTrackState("OneDrive files cannot be snapshotted by Gradle VFS")
+    doLast {
+        def src = file('src/main/assets')
+        def dest = file("C:/Users/prith/.gradle/nagardrishti-build/assets")
+        if (src.exists()) {
+            dest.mkdirs()
+            if (org.gradle.internal.os.OperatingSystem.current().isWindows()) {
+                exec {
+                    commandLine 'cmd', '/c', 'robocopy', src.absolutePath, dest.absolutePath, '/E', '/R:1', '/W:1', '/NFL', '/NDL', '/NJH', '/NJS'
+                    ignoreExitValue = true
+                }
+            } else {
+                copy {
+                    from src
+                    into dest
+                }
+            }
+        }
+    }
 }
 preBuild.dependsOn syncLocalAssets
 
