@@ -206,6 +206,26 @@ export async function apiFetch(
       ...init,
       signal: init?.signal || controller.signal,
     });
+    if (res.status === 401) {
+      try {
+        const { data: refreshed, error } = await supabase.auth.refreshSession();
+        if (!error && refreshed?.session?.access_token) {
+          cachedAuthToken = refreshed.session.access_token;
+          const retryHeaders = {
+            ...(init?.headers || {}),
+            Authorization: `Bearer ${refreshed.session.access_token}`,
+          };
+          const retryRes = await fetch(input, {
+            ...init,
+            headers: retryHeaders,
+            signal: init?.signal || controller.signal,
+          });
+          return retryRes;
+        }
+      } catch {
+        // Fall through to returning 401 response
+      }
+    }
     return res;
   } catch (err: any) {
     if (err.name === 'AbortError') {
@@ -251,9 +271,9 @@ export async function apiFetch(
         }
       }
       throw new Error(
-        Capacitor.isNativePlatform()
-          ? 'Network connection failed. Please ensure your mobile device is connected to the same Wi-Fi network as the backend server (http://192.168.1.5:8000).'
-          : 'Network connection failed. Please check your internet connection.'
+        Capacitor.isNativePlatform() && !IS_REMOTE_PROD_URL
+          ? 'Network connection failed. Please ensure your mobile device is connected to the same Wi-Fi network as the backend server.'
+          : 'Network connection failed. Please check your internet connection and try again.'
       );
     }
     throw err;
