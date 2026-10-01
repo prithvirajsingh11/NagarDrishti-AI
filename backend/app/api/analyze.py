@@ -26,6 +26,7 @@ def get_vision_analyzer() -> VisionAnalyzer:
         return LocalVisionProvider()
 
 @router.post("", response_model=CivicDetectionResult)
+@router.post("/", response_model=CivicDetectionResult)
 async def analyze_civic_image(
     file: UploadFile = File(...),
     user: Dict = Depends(get_current_user)

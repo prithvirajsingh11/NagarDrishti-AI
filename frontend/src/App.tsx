@@ -317,7 +317,7 @@ export function App() {
       <Footer />
 
       {/* Mobile Bottom Navigation (Visible on phones & tablets, hidden on lg desktop) */}
-      {currentView !== 'auth' && (
+      {currentView !== 'auth' && !mobileMenuOpen && (
         <MobileBottomNav
           currentView={currentView}
           onNavigate={navigateTo}

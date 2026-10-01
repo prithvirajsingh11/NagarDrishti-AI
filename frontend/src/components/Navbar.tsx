@@ -107,7 +107,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header
-      className="sticky top-0 z-40 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-2xs transition-colors safe-top"
+      className={`sticky top-0 ${isMenuOpen ? 'z-50' : 'z-40'} bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-2xs transition-colors safe-top`}
       style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 0px)' }}
     >
       <div className="max-w-[1520px] mx-auto px-3 sm:px-6 lg:px-8">
@@ -419,7 +419,12 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Mobile Navigation Drawer with Backdrop */}
         {isMenuOpen && (
-          <div className="lg:hidden fixed inset-0 top-15 z-50 flex flex-col bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 overflow-y-auto p-4 space-y-4 animate-in fade-in duration-150">
+          <div
+            className="lg:hidden fixed inset-x-0 bottom-0 z-50 flex flex-col bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 overflow-y-auto p-4 pb-16 space-y-4 animate-in fade-in duration-150 safe-bottom"
+            style={{
+              top: 'calc(3.75rem + max(env(safe-area-inset-top, 0px), 0px))',
+            }}
+          >
             {/* Profile info if logged in */}
             {isLoggedIn && citizen ? (
               <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between">

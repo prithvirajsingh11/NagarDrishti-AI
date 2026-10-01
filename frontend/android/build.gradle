@@ -22,6 +22,8 @@ allprojects {
         google()
         mavenCentral()
     }
+    // Place build directory outside OneDrive to prevent Windows file locks and reparse point conflicts
+    layout.buildDirectory.set(file("C:/Users/prith/.gradle/nagardrishti-build/${project.name}"))
 }
 
 task clean(type: Delete) {

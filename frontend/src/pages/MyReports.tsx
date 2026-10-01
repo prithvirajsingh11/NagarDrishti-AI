@@ -723,7 +723,7 @@ export const MyReports: React.FC<MyReportsProps> = ({ onStartNewReport, selected
                 </div>
                 <div className="h-48 sm:h-64 w-full rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 relative shadow-inner">
                   <img
-                    src={resolveControlledImageUrl(activeComplaint.image_url)}
+                    src={getControlledImageUrl(activeComplaint.image_url)}
                     alt={activeComplaint.problem_type}
                     className="w-full h-full object-cover"
                   />

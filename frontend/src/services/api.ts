@@ -23,16 +23,99 @@ const RAW_API_BASE = (
   ''
 ).trim();
 
-// On mobile native app (Capacitor), fallback to local machine IP if env is empty
-const DEFAULT_MOBILE_HOST = 'http://192.168.1.5:8000';
+// If env points to a remote cloud production URL, use that. Otherwise, test local dev candidates.
+const IS_REMOTE_PROD_URL =
+  Boolean(RAW_API_BASE) &&
+  !RAW_API_BASE.includes('localhost') &&
+  !RAW_API_BASE.includes('127.0.0.1') &&
+  !RAW_API_BASE.includes('192.168.') &&
+  !RAW_API_BASE.includes('10.0.2.2');
 
-export const API_BASE = RAW_API_BASE
-  ? (RAW_API_BASE.replace(/\/+$/, '').endsWith('/api')
-      ? RAW_API_BASE.replace(/\/+$/, '')
-      : `${RAW_API_BASE.replace(/\/+$/, '')}/api`)
-  : Capacitor.isNativePlatform()
-  ? `${DEFAULT_MOBILE_HOST}/api`
-  : '/api';
+// Clean up configured base root (without trailing /api or slash)
+const configuredBase = RAW_API_BASE.replace(/\/api\/?$/, '').replace(/\/+$/, '');
+
+// Candidate mobile hosts for local development:
+// 1. Configured base URL from .env (e.g. Wi-Fi IP http://192.168.1.5:8000)
+// 2. Wi-Fi IP fallback
+// 3. localhost / 127.0.0.1 (USB cable via ADB reverse)
+// 4. 10.0.2.2 (Android emulator)
+const MOBILE_CANDIDATE_HOSTS: string[] = Array.from(
+  new Set(
+    [
+      configuredBase,
+      'http://192.168.1.5:8000',
+      'http://localhost:8000',
+      'http://127.0.0.1:8000',
+      'http://10.0.2.2:8000',
+    ].filter(Boolean)
+  )
+);
+
+const cachedBase =
+  typeof localStorage !== 'undefined'
+    ? localStorage.getItem('nagardrishti_api_base')
+    : null;
+
+let activeMobileBase =
+  cachedBase ||
+  (configuredBase ? `${configuredBase}/api` : `${MOBILE_CANDIDATE_HOSTS[0]}/api`);
+
+let probePromise: Promise<string> | null = null;
+
+export async function detectReachableMobileBase(): Promise<string> {
+  if (!Capacitor.isNativePlatform() || IS_REMOTE_PROD_URL) {
+    return getActiveApiBase();
+  }
+  if (probePromise) return probePromise;
+
+  probePromise = (async () => {
+    const hostsToTest = [
+      activeMobileBase.replace(/\/api\/?$/, ''),
+      ...MOBILE_CANDIDATE_HOSTS,
+    ].filter((val, idx, self) => Boolean(val) && self.indexOf(val) === idx);
+
+    for (const host of hostsToTest) {
+      const candidateBase = `${host}/api`;
+      try {
+        const c = new AbortController();
+        const t = setTimeout(() => c.abort(), 1800);
+        const res = await fetch(`${candidateBase}/health`, { signal: c.signal });
+        clearTimeout(t);
+        if (res.ok) {
+          activeMobileBase = candidateBase;
+          try {
+            localStorage.setItem('nagardrishti_api_base', candidateBase);
+          } catch {}
+          return candidateBase;
+        }
+      } catch {
+        // Continue to next candidate
+      }
+    }
+    return activeMobileBase;
+  })();
+
+  return probePromise;
+}
+
+if (Capacitor.isNativePlatform()) {
+  detectReachableMobileBase().catch(() => {});
+}
+
+export function getActiveApiBase(): string {
+  if (IS_REMOTE_PROD_URL) {
+    const trimmed = RAW_API_BASE.replace(/\/+$/, '');
+    return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
+  }
+  return Capacitor.isNativePlatform() ? activeMobileBase : '/api';
+}
+
+export const API_BASE = {
+  toString: () => getActiveApiBase(),
+  replace: (pattern: any, replacement: any) => getActiveApiBase().replace(pattern, replacement),
+  endsWith: (suffix: string) => getActiveApiBase().endsWith(suffix),
+  startsWith: (prefix: string) => getActiveApiBase().startsWith(prefix),
+} as any as string;
 
 export function resolveApiUrl(path: string): string {
   if (!path) return '';
@@ -44,18 +127,55 @@ export function resolveApiUrl(path: string): string {
   ) {
     return path;
   }
-  if (API_BASE === '/api') return path;
-  const baseRoot = API_BASE.replace(/\/api$/, '');
+  const currentBase = getActiveApiBase();
+  if (currentBase === '/api') return path;
+  const baseRoot = currentBase.replace(/\/api$/, '');
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   return `${baseRoot}${cleanPath}`;
+}
+
+function getStoredSupabaseToken(): string | null {
+  if (typeof window === 'undefined' || !window.localStorage) return null;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+        const item = localStorage.getItem(key);
+        if (item) {
+          const parsed = JSON.parse(item);
+          if (parsed && typeof parsed.access_token === 'string') return parsed.access_token;
+          if (parsed && parsed.currentSession && typeof parsed.currentSession.access_token === 'string') {
+            return parsed.currentSession.access_token;
+          }
+        }
+      }
+    }
+  } catch {}
+  return null;
+}
+
+let cachedAuthToken: string | null = null;
+if (typeof window !== 'undefined') {
+  cachedAuthToken = getStoredSupabaseToken();
+  try {
+    supabase.auth.onAuthStateChange((_event, session) => {
+      cachedAuthToken = session?.access_token || null;
+    });
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.access_token) {
+        cachedAuthToken = session.access_token;
+      }
+    });
+  } catch {}
 }
 
 export function getControlledImageUrl(url?: string | null, token?: string | null): string {
   if (!url) return '';
   const resolved = resolveApiUrl(url);
-  if (url.startsWith('/api') && token) {
+  const activeToken = token || cachedAuthToken || getStoredSupabaseToken();
+  if (resolved.includes('/api/complaints/image/') && activeToken && !resolved.includes('token=')) {
     const separator = resolved.includes('?') ? '&' : '?';
-    return `${resolved}${separator}token=${encodeURIComponent(token)}`;
+    return `${resolved}${separator}token=${encodeURIComponent(activeToken)}`;
   }
   return resolved;
 }
@@ -78,7 +198,33 @@ export async function apiFetch(
       throw new Error('Request timed out. Please check your network connection and try again.');
     }
     if (err instanceof TypeError && err.message.toLowerCase().includes('failed to fetch')) {
-      throw new Error('Network connection failed. Please ensure the municipal service is reachable.');
+      if (Capacitor.isNativePlatform() && !IS_REMOTE_PROD_URL) {
+        probePromise = null;
+        for (const candidate of MOBILE_CANDIDATE_HOSTS) {
+          const candidateBase = `${candidate}/api`;
+          if (activeMobileBase === candidateBase) continue;
+          try {
+            const probeCtrl = new AbortController();
+            const probeTimer = setTimeout(() => probeCtrl.abort(), 1800);
+            const probeRes = await fetch(`${candidateBase}/health`, { signal: probeCtrl.signal });
+            clearTimeout(probeTimer);
+            if (probeRes.ok) {
+              activeMobileBase = candidateBase;
+              try {
+                localStorage.setItem('nagardrishti_api_base', candidateBase);
+              } catch {}
+              const retryUrl = input.replace(/^https?:\/\/[^/]+\/api/, candidateBase);
+              return await fetch(retryUrl, {
+                ...init,
+                signal: init?.signal || controller.signal,
+              });
+            }
+          } catch {
+            // Try next candidate
+          }
+        }
+      }
+      throw new Error('Network connection failed. Please ensure your device is connected to the same Wi-Fi as the server.');
     }
     throw err;
   } finally {
@@ -132,18 +278,6 @@ async function parseErrorResponse(res: Response, defaultMsg: string): Promise<Er
   if (res.status === 403) {
     return new Error('Access denied. You do not have permission to view or modify this report.');
   }
-  if (res.status === 404) {
-    return new Error('The requested record could not be found.');
-  }
-  if (res.status === 413) {
-    return new Error('The uploaded image is too large (maximum size is 10 MB).');
-  }
-  if (res.status === 429) {
-    return new Error('Too many requests. Please wait a moment before trying again.');
-  }
-  if (res.status >= 500) {
-    return new Error('The municipal service is temporarily unavailable. Please try again shortly.');
-  }
 
   let errMsg = defaultMsg;
   try {
@@ -173,15 +307,27 @@ async function parseErrorResponse(res: Response, defaultMsg: string): Promise<Er
           lower.includes('quota') ||
           lower.includes('resource_exhausted')
         ) {
-          // Never leak raw DB / API secrets / system internals to citizen
           errMsg = defaultMsg;
-        } else {
+        } else if (lower !== 'not found') {
           errMsg = data.detail;
         }
       }
     }
   } catch {
     // fallback
+  }
+
+  if (res.status === 404) {
+    return new Error(errMsg !== defaultMsg ? errMsg : (defaultMsg || 'The requested record could not be found.'));
+  }
+  if (res.status === 413) {
+    return new Error('The uploaded image is too large (maximum size is 10 MB).');
+  }
+  if (res.status === 429) {
+    return new Error('Too many requests. Please wait a moment before trying again.');
+  }
+  if (res.status >= 500) {
+    return new Error('The municipal service is temporarily unavailable. Please try again shortly.');
   }
 
   return new Error(errMsg);

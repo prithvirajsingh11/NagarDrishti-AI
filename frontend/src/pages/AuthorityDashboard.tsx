@@ -36,12 +36,14 @@ import { ProblemIcon, getProblemLabel } from '../components/ProblemIcon';
 import { SeverityBadge } from '../components/SeverityBadge';
 import { StatusBadge } from '../components/StatusBadge';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
 import { optimizeImageForUpload } from '../utils/imageOptimizer';
 
 const DEFAULT_CENTER: [number, number] = [23.2599, 77.4126];
 
 export const AuthorityDashboard: React.FC = () => {
   const { t } = useLanguage();
+  const { token } = useAuth();
 
   // State
   const [stats, setStats] = useState<DashboardStatistics | null>(null);
@@ -620,7 +622,7 @@ export const AuthorityDashboard: React.FC = () => {
                     <span className="text-[10.5px] text-slate-500 block mb-1">Citizen Photo:</span>
                     <div className="h-32 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                       <img
-                        src={getControlledImageUrl(selectedComplaint.image_url)}
+                        src={getControlledImageUrl(selectedComplaint.image_url, token)}
                         alt="Citizen Upload"
                         className="w-full h-full object-cover"
                       />
@@ -632,7 +634,7 @@ export const AuthorityDashboard: React.FC = () => {
                     {resolutionPreview || selectedComplaint.resolution_image_url ? (
                       <div className="h-32 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-emerald-300 dark:border-emerald-800">
                         <img
-                          src={resolutionPreview || getControlledImageUrl(selectedComplaint.resolution_image_url)}
+                          src={resolutionPreview || getControlledImageUrl(selectedComplaint.resolution_image_url, token)}
                           alt="Resolution"
                           className="w-full h-full object-cover"
                         />
