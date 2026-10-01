@@ -42,6 +42,13 @@ class Settings(BaseSettings):
         "http://127.0.0.1",
     ]
 
+    @field_validator("SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "GEMINI_API_KEY", mode="before")
+    @classmethod
+    def clean_env_strings(cls, v):
+        if isinstance(v, str):
+            return v.strip().strip("'\"").strip()
+        return v
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v):

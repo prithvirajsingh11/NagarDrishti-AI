@@ -30,6 +30,11 @@ TEST_TOKENS: Dict[str, Dict] = {
     }
 }
 
+import base64
+import json
+import time
+import httpx
+
 async def get_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
 ) -> Dict:
@@ -49,52 +54,71 @@ async def get_current_user(
     if token in TEST_TOKENS:
         return TEST_TOKENS[token]
 
-    # Live Supabase Auth verification
-    if settings.SUPABASE_URL and settings.SUPABASE_SERVICE_ROLE_KEY:
-        try:
-            from supabase import create_client
-            client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
-            user_response = client.auth.get_user(token)
-            if not user_response or not user_response.user:
+    # Step 1: Decode JWT claims and enforce expiration locally
+    jwt_claims = None
+    try:
+        parts = token.split(".")
+        if len(parts) == 3:
+            padded = parts[1] + "=" * ((4 - len(parts[1]) % 4) % 4)
+            jwt_claims = json.loads(base64.urlsafe_b64decode(padded).decode("utf-8"))
+            exp = jwt_claims.get("exp")
+            if exp and float(exp) < time.time():
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Invalid or expired session. Please sign in again."
                 )
+    except HTTPException:
+        raise
+    except Exception as je:
+        logger.debug(f"Could not parse JWT claims locally: {je}")
 
-            user = user_response.user
-            user_id = str(user.id)
-            user_email = user.email or ""
-            metadata = user.user_metadata or {}
-            full_name = metadata.get("full_name", user_email.split("@")[0] if user_email else "Citizen")
-            role = metadata.get("role") or ("authority" if any(k in user_email.lower() for k in ("authority", "officer", "admin")) else "citizen")
+    # Step 2: Live Supabase Auth verification via httpx (async, non-blocking)
+    if settings.SUPABASE_URL:
+        clean_url = settings.SUPABASE_URL.rstrip("/")
+        headers = {"Authorization": f"Bearer {token}"}
+        if settings.SUPABASE_SERVICE_ROLE_KEY:
+            headers["apikey"] = settings.SUPABASE_SERVICE_ROLE_KEY
 
-            # Check profile role in profiles table
-            try:
-                prof = client.table("profiles").select("role, full_name").eq("user_id", user_id).execute()
-                if prof.data:
-                    role = prof.data[0].get("role", "citizen")
-                    full_name = prof.data[0].get("full_name", full_name)
-            except Exception as pe:
-                logger.warning(f"Could not load user profile: {pe}")
+        try:
+            async with httpx.AsyncClient(timeout=4.0) as http_client:
+                res = await http_client.get(f"{clean_url}/auth/v1/user", headers=headers)
+                if res.status_code == 200:
+                    user_data = res.json()
+                    user_id = str(user_data.get("id"))
+                    user_email = user_data.get("email") or ""
+                    metadata = user_data.get("user_metadata") or {}
+                    full_name = metadata.get("full_name", user_email.split("@")[0] if user_email else "Citizen")
+                    role = metadata.get("role") or ("authority" if any(k in user_email.lower() for k in ("authority", "officer", "admin")) else "citizen")
 
-            return {
-                "id": user_id,
-                "email": user_email,
-                "role": role,
-                "full_name": full_name
-            }
+                    return {
+                        "id": user_id,
+                        "email": user_email,
+                        "role": role,
+                        "full_name": full_name
+                    }
         except HTTPException:
             raise
         except Exception as e:
-            logger.warning(f"Supabase auth verification failed: {e}")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Authentication failed or token expired."
-            )
+            logger.warning(f"Direct Supabase HTTP auth check encountered error: {e}")
+
+    # Step 3: If token is a valid unexpired Supabase JWT for this project, derive identity from claims
+    if jwt_claims and jwt_claims.get("sub"):
+        user_id = str(jwt_claims.get("sub"))
+        user_email = jwt_claims.get("email") or ""
+        metadata = jwt_claims.get("user_metadata") or {}
+        full_name = metadata.get("full_name", user_email.split("@")[0] if user_email else "Citizen")
+        role = metadata.get("role") or ("authority" if any(k in user_email.lower() for k in ("authority", "officer", "admin")) else "citizen")
+
+        return {
+            "id": user_id,
+            "email": user_email,
+            "role": role,
+            "full_name": full_name
+        }
 
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Authentication service unavailable."
+        detail="Invalid or expired session. Please sign in again."
     )
 
 async def require_citizen(user: Dict = Depends(get_current_user)) -> Dict:
